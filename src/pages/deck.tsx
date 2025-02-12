@@ -6,7 +6,7 @@ import { StatsBadge } from '../components/ui/stats-badge';
 import { Loader } from '../components/ui/loader';
 import { readContract, writeContract, waitForTransactionReceipt } from '@wagmi/core';
 import { DECK_ACCESS_NFT_ABI, DECK_ACCESS_NFT_ADDRESS } from '../lib/constants';
-import { parseEther, type Hash, getAddress } from 'viem';
+import { parseEther, getAddress } from 'viem';
 import { config } from '../lib/wagmi';
 
 export function DeckPage() {

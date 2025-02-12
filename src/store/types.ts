@@ -1,5 +1,6 @@
 import { LitNodeClient } from '@lit-protocol/lit-node-client';
 import { OrbisDB } from '@useorbis/db-sdk';
+import { Deck, Flashcard } from '../lib/idb/schema';
 
 export interface Deck {
   id: number;
@@ -68,12 +69,19 @@ export interface StoreState {
 
   // Study slice
   deckId: number | null;
-  cards: StudyCard[];
+  cards: Flashcard[];
   currentCardIndex: number;
+  currentCard: Flashcard | null;
   isFlipped: boolean;
-  studyAgainCards: StudyCard[];
-  stats: StudyStats | null;
+  studyAgainCards: Flashcard[];
+  stats: {
+    total: number;
+    correct: number;
+    again: number;
+    timeSpent: string;
+  } | null;
   isCompleted: boolean;
+  isSessionComplete: boolean;
 
   // UI slice
   isDarkMode: boolean;

@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import { StoreState } from '../types';
-import { Deck } from '../types';
+import { Deck } from '../../lib/idb/schema';
 import { TablelandClient } from '../../lib/tableland';
 
 export interface DecksSlice {

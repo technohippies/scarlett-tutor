@@ -26,6 +26,11 @@ export interface Deck {
   encryption_key: string | null;
   access_conditions: string | null;
   last_synced?: number;
+  stats?: {
+    new: number;
+    due: number;
+    review: number;
+  };
 }
 
 export interface StudyProgress {
