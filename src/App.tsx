@@ -1,9 +1,9 @@
 import { Routes, Route } from 'react-router-dom';
-import { Layout } from './components/layout';
-import HomePage from './pages/home';
-import { DeckPage } from './pages/deck';
-import { StudyPage } from './pages/study';
-import { CompletionPage } from './pages/completion';
+import { Layout } from './features/ui/components/layout';
+import HomePage from './features/decks/pages/home';
+import { DeckPage } from './features/decks/pages/deck';
+import { StudyPage } from './features/study/pages/study';
+import { CompletionPage } from './features/study/pages/completion';
 import { ring } from 'ldrs';
 
 // Register the loader component
