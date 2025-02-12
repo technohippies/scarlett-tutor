@@ -10,12 +10,12 @@ export function StudyPage() {
   const selectedDeck = useSelectedDeck();
   const { isLoading: isDeckLoading } = useDecksStatus();
   const { selectDeck } = useDecksActions();
-  const { currentCard } = useStudyData();
+  const { cards, currentCard, stats } = useStudyData();
   const { 
     isFlipped,
     isLoading: isStudyLoading,
     error,
-    isSessionComplete
+    isCompleted
   } = useStudyStatus();
   const {
     startStudySession,
@@ -30,16 +30,45 @@ export function StudyPage() {
   }, [deckId, selectDeck]);
 
   useEffect(() => {
-    if (selectedDeck && !isStudyLoading) {
-      void startStudySession(selectedDeck.id);
+    let mounted = true;
+    console.log('[StudyPage] Mount effect running:', {
+      selectedDeck: selectedDeck?.id,
+      isCompleted,
+      hasCards: cards.length > 0,
+      currentCardIndex: currentCard?.id
+    });
+
+    if (selectedDeck && mounted) {
+      void startStudySession(selectedDeck.id)
+        .catch(err => {
+          console.error('[StudyPage] Failed to start study session:', err);
+          if (err.message.includes('Encrypted decks are not yet supported')) {
+            navigate(`/decks/${deckId}`);
+          }
+        });
     }
-  }, [selectedDeck, startStudySession, isStudyLoading]);
+
+    return () => {
+      console.log('[StudyPage] Unmounting with state:', {
+        isCompleted,
+        hasCards: cards.length > 0,
+        currentCardIndex: currentCard?.id
+      });
+      mounted = false;
+    };
+  }, [selectedDeck, startStudySession, navigate]);
 
   useEffect(() => {
-    if (isSessionComplete) {
+    console.log('[StudyPage] Completion check:', {
+      isCompleted,
+      hasCards: cards.length > 0,
+      stats
+    });
+
+    if (isCompleted) {
       navigate(`/study/${deckId}/complete`);
     }
-  }, [isSessionComplete, navigate, deckId]);
+  }, [isCompleted, navigate, deckId]);
 
   if (isDeckLoading || isStudyLoading) {
     return (

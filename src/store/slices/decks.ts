@@ -2,12 +2,14 @@ import { StateCreator } from 'zustand';
 import { StoreState } from '../types';
 import { Deck } from '../../lib/idb/schema';
 import { TablelandClient } from '../../lib/tableland';
+import { getTodayStudyLog } from '../../lib/idb';
 
 export interface DecksSlice {
   decks: Deck[];
   selectedDeck: Deck | null;
   isLoading: boolean;
   error: string | null;
+  hasStudiedToday: boolean;
   fetchDecks: () => Promise<void>;
   selectDeck: (deckId: number) => Promise<void>;
   addDeck: (deck: Deck) => void;
@@ -24,6 +26,7 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
   selectedDeck: null,
   isLoading: false,
   error: null,
+  hasStudiedToday: false,
 
   fetchDecks: async () => {
     const state = get();
@@ -64,7 +67,16 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
       if (!deck) {
         throw new Error('Deck not found');
       }
-      set({ selectedDeck: deck, isLoading: false });
+
+      // Check if deck has been studied today
+      const todayLog = await getTodayStudyLog(deckId);
+      const hasStudiedToday = todayLog ? todayLog.cards_studied.length > 0 : false;
+
+      set({ 
+        selectedDeck: deck, 
+        isLoading: false,
+        hasStudiedToday
+      });
     } catch (error) {
       console.error('Failed to select deck:', error);
       set({ error: 'Failed to select deck', isLoading: false });

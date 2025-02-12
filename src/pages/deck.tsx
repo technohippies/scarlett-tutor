@@ -9,6 +9,25 @@ import { DECK_ACCESS_NFT_ABI, DECK_ACCESS_NFT_ADDRESS } from '../lib/constants';
 import { parseEther, getAddress } from 'viem';
 import { config } from '../lib/wagmi';
 
+function CardStats({ stats }: { stats: { new: number; due: number; review: number } }) {
+  return (
+    <div className="flex gap-4 items-center">
+      <div className="text-center">
+        <p className="text-sm font-medium text-muted-foreground">New</p>
+        <p className="text-2xl font-bold">{stats.new}</p>
+      </div>
+      <div className="text-center">
+        <p className="text-sm font-medium text-muted-foreground">Review</p>
+        <p className="text-2xl font-bold">{stats.review}</p>
+      </div>
+      <div className="text-center">
+        <p className="text-sm font-medium text-muted-foreground">Due</p>
+        <p className="text-2xl font-bold">{stats.due}</p>
+      </div>
+    </div>
+  );
+}
+
 export function DeckPage() {
   const { deckId } = useParams();
   const selectedDeck = useSelectedDeck();
@@ -21,6 +40,7 @@ export function DeckPage() {
   const [isConfirming, setIsConfirming] = useState(false);
   const [hasNFT, setHasNFT] = useState(false);
   const [contractError, setContractError] = useState<string | null>(null);
+  const { hasStudiedToday } = useDecksStatus();
 
   // Check wallet connection on mount
   useEffect(() => {
@@ -119,6 +139,7 @@ export function DeckPage() {
   const isPaid = selectedDeck.price > 0;
   const canStudy = !isPaid || hasNFT;
   const isTransacting = isPurchasing || isConfirming;
+  const studyButtonText = hasStudiedToday ? 'Study Again' : 'Start Studying';
 
   return (
     <div className="space-y-8">
@@ -146,15 +167,20 @@ export function DeckPage() {
               <Card.Description>{selectedDeck.description}</Card.Description>
             </Card.Header>
             <Card.Content>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{selectedDeck.category}</span>
-                <span>•</span>
-                <span>{selectedDeck.language}</span>
-                {isPaid && (
-                  <>
-                    <span>•</span>
-                    <span>{selectedDeck.price} ETH</span>
-                  </>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>{selectedDeck.category}</span>
+                  <span>•</span>
+                  <span>{selectedDeck.language}</span>
+                  {isPaid && (
+                    <>
+                      <span>•</span>
+                      <span>{selectedDeck.price} ETH</span>
+                    </>
+                  )}
+                </div>
+                {selectedDeck.stats && (
+                  <CardStats stats={selectedDeck.stats} />
                 )}
               </div>
             </Card.Content>
@@ -202,7 +228,7 @@ export function DeckPage() {
               to={`/study/${selectedDeck.id}`}
               className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
             >
-              Start Studying
+              {studyButtonText}
             </Link>
           )}
         </div>

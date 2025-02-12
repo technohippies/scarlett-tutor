@@ -1,6 +1,6 @@
-import { LitNodeClient } from '@lit-protocol/lit-node-client';
-import { OrbisDB } from '@useorbis/db-sdk';
-import { Deck, Flashcard } from '../lib/idb/schema';
+import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
+import type { Deck, Flashcard } from '../lib/idb/schema';
 
 export interface Deck {
   id: number;
@@ -54,38 +54,35 @@ export interface StudyStats {
 }
 
 export interface StoreState {
-  // Auth slice
-  isWalletConnected: boolean;
+  // Auth
   address: string | null;
-  litNodeClient: LitNodeClient | null;
-  orbis: OrbisDB | null;
+  isWalletConnected: boolean;
+  orbis: any | null; // TODO: Add proper Orbis type when package is installed
   isOrbisConnected: boolean;
-
-  // Decks slice
+  litNodeClient: any | null; // TODO: Add proper Lit Protocol type
+  
+  // Decks
   decks: Deck[];
   selectedDeck: Deck | null;
   isLoading: boolean;
   error: string | null;
-
-  // Study slice
+  hasStudiedToday: boolean;
+  
+  // Study
   deckId: number | null;
   cards: Flashcard[];
   currentCardIndex: number;
-  currentCard: Flashcard | null;
   isFlipped: boolean;
   studyAgainCards: Flashcard[];
-  stats: {
-    total: number;
-    correct: number;
-    again: number;
-    timeSpent: string;
-  } | null;
+  currentCard: Flashcard | null;
   isCompleted: boolean;
   isSessionComplete: boolean;
 
-  // UI slice
+  // UI
   isDarkMode: boolean;
   isSidebarOpen: boolean;
   isModalOpen: boolean;
   modalContent: React.ReactNode | null;
-} 
+}
+
+export type Store = StoreState; 

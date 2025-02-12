@@ -40,7 +40,8 @@ export const useDecksStatus = () => {
   return useMemo(() => ({
     isLoading: state.isLoading,
     error: state.error,
-  }), [state.isLoading, state.error]);
+    hasStudiedToday: state.hasStudiedToday,
+  }), [state.isLoading, state.error, state.hasStudiedToday]);
 };
 
 export const useDecksActions = () => {
