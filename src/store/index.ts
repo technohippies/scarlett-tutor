@@ -108,6 +108,7 @@ export const useAuthActions = () => {
   return useMemo(() => ({
     connectWallet: state.connectWallet,
     connectOrbis: state.connectOrbis,
+    checkWalletConnection: state.checkWalletConnection,
   }), [state]);
 };
 

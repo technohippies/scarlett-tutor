@@ -2,7 +2,7 @@ import { StateCreator } from 'zustand';
 import { LitNodeClient } from '@lit-protocol/lit-node-client';
 import { OrbisDB } from '@useorbis/db-sdk';
 import { StoreState } from '../types';
-import { connect } from '@wagmi/core';
+import { connect, getAccount } from '@wagmi/core';
 import { injected } from 'wagmi/connectors';
 import { config } from '../../lib/wagmi';
 
@@ -17,6 +17,7 @@ export interface AuthSlice {
   setOrbisConnection: (connected: boolean, orbis?: OrbisDB) => void;
   connectWallet: () => Promise<void>;
   connectOrbis: () => Promise<void>;
+  checkWalletConnection: () => Promise<void>;
 }
 
 export const createAuthSlice: StateCreator<StoreState, [], [], AuthSlice> = (set) => ({
@@ -27,6 +28,7 @@ export const createAuthSlice: StateCreator<StoreState, [], [], AuthSlice> = (set
   isOrbisConnected: false,
 
   setWalletConnection: (connected: boolean, address?: string) => {
+    console.log('Setting wallet connection:', { connected, address });
     set({ isWalletConnected: connected, address: address || null });
   },
 
@@ -38,14 +40,34 @@ export const createAuthSlice: StateCreator<StoreState, [], [], AuthSlice> = (set
     set({ isOrbisConnected: connected, orbis: orbis || null });
   },
 
+  checkWalletConnection: async () => {
+    try {
+      const account = getAccount(config);
+      console.log('Checking wallet connection status:', account);
+      if (account.isConnected && account.address) {
+        console.log('Wallet already connected:', account.address);
+        set({ isWalletConnected: true, address: account.address });
+      } else {
+        console.log('Wallet not connected');
+        set({ isWalletConnected: false, address: null });
+      }
+    } catch (error) {
+      console.error('Error checking wallet connection:', error);
+      set({ isWalletConnected: false, address: null });
+    }
+  },
+
   connectWallet: async () => {
     try {
+      console.log('Attempting to connect wallet...');
       const result = await connect(config, {
         connector: injected(),
       });
+      console.log('Wallet connected successfully:', result);
       set({ isWalletConnected: true, address: result.accounts[0] });
     } catch (error) {
       console.error('Failed to connect wallet:', error);
+      set({ isWalletConnected: false, address: null });
     }
   },
 
