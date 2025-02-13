@@ -2,7 +2,6 @@ import { Database } from '@tableland/sdk';
 import { type Deck } from '../idb/schema';
 import { getAccount, getWalletClient } from '@wagmi/core';
 import { config } from '../wagmi';
-import { LitNodeClient } from '@lit-protocol/lit-node-client';
 
 // Table names - these are unique to your deployment
 export const DECKS_TABLE = 'decks_v5_84532_103'; // You'll need to replace this with your actual table name

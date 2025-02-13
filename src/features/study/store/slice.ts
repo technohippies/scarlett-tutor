@@ -319,7 +319,7 @@ export const createStudySlice: StateCreator<StoreState, [], [], StudySlice> = (s
   },
 
   completeSession: async () => {
-    const { isCompleted, isSessionComplete, cards } = get();
+    const { isCompleted, isSessionComplete, cards, deckId } = get();
     console.log('[completeSession] Starting with state:', {
       isCompleted,
       isSessionComplete,
@@ -343,6 +343,12 @@ export const createStudySlice: StateCreator<StoreState, [], [], StudySlice> = (s
       
       // Reset study state and clear session storage
       sessionStorage.removeItem('hasCompletedStudy');
+      
+      // Update hasStudiedToday flag
+      if (deckId) {
+        const todayLog = await getTodayStudyLog(deckId);
+        set({ hasStudiedToday: todayLog ? todayLog.cards_studied.length > 0 : false });
+      }
       
       set({
         isLoading: false,

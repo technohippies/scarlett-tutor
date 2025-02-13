@@ -4,20 +4,9 @@ import { readContract } from '@wagmi/core';
 import { DECK_ACCESS_NFT_ABI, DECK_ACCESS_NFT_ADDRESS } from '../../constants';
 import { getAddress } from 'viem';
 import { config } from '../wagmi';
-import { LitNodeClient } from '@lit-protocol/lit-node-client';
 import { SiweMessage } from 'siwe';
 import { BrowserProvider } from 'ethers';
-import { decryptToString } from '@lit-protocol/encryption';
-import { LIT_NETWORKS } from '@lit-protocol/constants';
-import type { LIT_NETWORKS_KEYS } from '@lit-protocol/types';
-
-// Log available networks for debugging
-console.log('Available Lit Networks:', Object.keys(LIT_NETWORKS));
-console.log('Network details:', {
-  availableNetworks: Object.keys(LIT_NETWORKS),
-  selectedNetwork: 'datil-test',
-  networkConfig: LIT_NETWORKS['datil-test']
-});
+import { decryptWithLit } from '../lit';
 
 interface FlashcardsResponse {
   flashcards: Omit<Flashcard, 'id'>[];
@@ -27,27 +16,6 @@ interface EncryptedFlashcardsResponse {
   encrypted_content: string;
   encryption_key: string;
   access_conditions: string;
-}
-
-// Cache the Lit client instance
-let litNodeClient: LitNodeClient | null = null;
-
-async function getLitNodeClient() {
-  if (litNodeClient?.ready) {
-    return litNodeClient;
-  }
-
-  console.log('[getLitNodeClient] Initializing Lit client...');
-  const config = {
-    alertWhenUnauthorized: false,
-    debug: false,
-    litNetwork: 'datil-test' as LIT_NETWORKS_KEYS
-  };
-  console.log('[getLitNodeClient] Config:', config);
-  
-  litNodeClient = new LitNodeClient(config);
-  await litNodeClient.connect();
-  return litNodeClient;
 }
 
 export async function fetchAndStoreFlashcards(deck: Deck, address?: string) {
@@ -68,6 +36,20 @@ export async function fetchAndStoreFlashcards(deck: Deck, address?: string) {
 
     if (existingCards.length > 0) {
       console.log('[fetchAndStoreFlashcards] Using cached cards');
+      
+      // Initialize study log if it doesn't exist
+      const todayLog = await getTodayStudyLog(deck.id);
+      if (!todayLog) {
+        const date = new Date().toISOString().split('T')[0];
+        await updateStudyLog({
+          date,
+          deck_id: deck.id,
+          cards_studied: [],
+          new_cards_remaining: 20, // Start with 20 new cards per day
+        });
+        console.log('[fetchAndStoreFlashcards] Initialized study log');
+      }
+      
       return existingCards;
     }
 
@@ -160,9 +142,6 @@ export async function fetchAndStoreFlashcards(deck: Deck, address?: string) {
         throw new Error('Invalid access conditions format');
       }
 
-      // Get or initialize Lit client
-      const litNodeClient = await getLitNodeClient();
-
       // Generate SIWE message for authentication
       const domain = window.location.hostname;
       const origin = window.location.origin;
@@ -232,17 +211,10 @@ export async function fetchAndStoreFlashcards(deck: Deck, address?: string) {
             address: authSig.address,
             signedMessage: authSig.signedMessage,
             sigLength: authSig.sig.length
-          },
-          litClient: {
-            ready: litNodeClient.ready,
-            network: 'datil-test'
           }
         });
 
-        const decryptedString = await decryptToString(
-          decryptConfig,
-          litNodeClient
-        );
+        const decryptedString = await decryptWithLit(decryptConfig);
 
         if (!decryptedString) {
           console.error('[fetchAndStoreFlashcards] Decryption returned null/empty');
@@ -293,42 +265,17 @@ export async function fetchAndStoreFlashcards(deck: Deck, address?: string) {
         });
         throw new Error(`Failed to decrypt: ${decryptError.message || decryptError}`);
       }
-
-      // Store flashcards in IDB
-      console.log('[fetchAndStoreFlashcards] Storing cards in IDB:', {
-        deckId: deck.id,
-        count: flashcards.length
-      });
-      
-      await addFlashcards(deck.id, flashcards);
-      
-      // Verify storage
-      const storedCards = await getDeckFlashcards(deck.id);
-      console.log('[fetchAndStoreFlashcards] Verified stored cards:', {
-        deckId: deck.id,
-        count: storedCards.length,
-        expected: flashcards.length
-      });
-
-      // Initialize study log for today if it doesn't exist
-      const todayLog = await getTodayStudyLog(deck.id);
-      if (!todayLog) {
-        const date = new Date().toISOString().split('T')[0];
-        await updateStudyLog({
-          date,
-          deck_id: deck.id,
-          cards_studied: [],
-          new_cards_remaining: 20, // Start with 20 new cards per day
-        });
-        console.log('[fetchAndStoreFlashcards] Initialized study log');
-      }
-
-      // Return the stored flashcards
-      return getDeckFlashcards(deck.id);
     } else {
       console.log('[fetchAndStoreFlashcards] Processing unencrypted cards');
       const data: FlashcardsResponse = await response.json();
       flashcards = data.flashcards;
+    }
+
+    // Double check we don't have cards in IDB (race condition)
+    const doubleCheck = await getDeckFlashcards(deck.id);
+    if (doubleCheck.length > 0) {
+      console.log('[fetchAndStoreFlashcards] Cards were added by another request');
+      return doubleCheck;
     }
 
     // Store flashcards in IDB
@@ -337,7 +284,15 @@ export async function fetchAndStoreFlashcards(deck: Deck, address?: string) {
       count: flashcards.length
     });
     
-    await addFlashcards(deck.id, flashcards);
+    try {
+      await addFlashcards(deck.id, flashcards);
+    } catch (error: any) {
+      if (error.name === 'ConstraintError') {
+        console.log('[fetchAndStoreFlashcards] Cards already exist, using existing cards');
+        return getDeckFlashcards(deck.id);
+      }
+      throw error;
+    }
     
     // Verify storage
     const storedCards = await getDeckFlashcards(deck.id);
