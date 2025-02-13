@@ -5,6 +5,7 @@ import { decryptToString } from '@lit-protocol/encryption';
 // Cache the Lit client instance and its connection promise
 let litNodeClient: LitNodeClient | null = null;
 let connectionPromise: Promise<LitNodeClient> | null = null;
+let lastAuthSig: string | null = null;
 
 export async function getLitNodeClient() {
   // If we have a connected client, return it
@@ -35,6 +36,10 @@ export async function getLitNodeClient() {
     try {
       await litNodeClient!.connect();
       return litNodeClient!;
+    } catch (error) {
+      console.error('[getLitNodeClient] Connection failed:', error);
+      litNodeClient = null;
+      throw error;
     } finally {
       // Clear the promise so we can try again if it failed
       connectionPromise = null;
@@ -58,12 +63,23 @@ export async function decryptWithLit(config: {
   };
 }) {
   try {
+    // Check if we've already used this auth sig
+    const authSigHash = JSON.stringify(config.authSig);
+    if (authSigHash === lastAuthSig) {
+      console.log('[decryptWithLit] Reusing existing auth sig');
+    } else {
+      console.log('[decryptWithLit] New auth sig detected');
+      lastAuthSig = authSigHash;
+    }
+
     const client = await getLitNodeClient();
     return decryptToString(config, client);
   } catch (error: any) {
     console.error('[decryptWithLit] Failed:', error);
-    // Clear the client if we had a connection error
-    if (error.message?.includes('not ready') || error.message?.includes('connect')) {
+    // Only clear the client for actual connection errors
+    if (error.message?.includes('Failed to connect to Lit nodes') || 
+        error.message?.includes('Failed to connect to any Lit node')) {
+      console.log('[decryptWithLit] Connection error detected, clearing client');
       litNodeClient = null;
       connectionPromise = null;
     }

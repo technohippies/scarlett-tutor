@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useSelectedDeck, useDecksStatus, useDecksActions } from '../../decks/store/hooks';
 import { useStudyData, useStudyStatus, useStudyActions } from '../store/hooks';
@@ -17,27 +17,104 @@ export function StudyPage() {
   const { cards, currentCard, currentCardIndex } = useStudyData();
   const { isLoading: isLoadingStudy, isFlipped, isCompleted } = useStudyStatus();
   const { startStudySession, flipCard, answerCard } = useStudyActions();
+  
+  // Track initialization state
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const lastSelectedDeckId = useRef<number | null>(null);
+  const shouldStartStudy = useRef(false);
 
+  // Effect to handle deck selection
   useEffect(() => {
-    if (deckId) {
-      selectDeck(Number(deckId));
+    if (!deckId) {
+      console.log('[StudyPage] No deck ID provided');
+      return;
     }
-  }, [deckId, selectDeck]);
 
+    const numericDeckId = Number(deckId);
+
+    // Reset initialization if deck changes
+    if (lastSelectedDeckId.current !== numericDeckId) {
+      console.log('[StudyPage] Deck changed, resetting initialization:', {
+        previous: lastSelectedDeckId.current,
+        current: numericDeckId
+      });
+      setIsInitialized(false);
+      setIsInitializing(false);
+      lastSelectedDeckId.current = numericDeckId;
+      shouldStartStudy.current = true;
+    }
+
+    // Select deck if needed
+    if (!selectedDeck || selectedDeck.id !== numericDeckId) {
+      console.log('[StudyPage] Selecting deck:', numericDeckId);
+      void selectDeck(numericDeckId);
+    }
+  }, [deckId, selectedDeck, selectDeck]);
+
+  // Effect to start study session once deck is selected
   useEffect(() => {
-    if (selectedDeck && !isLoadingDeck) {
-      startStudySession(selectedDeck.id);
-    }
-  }, [selectedDeck, isLoadingDeck, startStudySession]);
+    async function startStudy() {
+      if (!selectedDeck || !shouldStartStudy.current || isInitializing || isInitialized) {
+        return;
+      }
 
-  // Handle completion navigation in useEffect
+      try {
+        setIsInitializing(true);
+        console.log('[StudyPage] Starting study session:', {
+          deckId: selectedDeck.id,
+          hasCards: (selectedDeck.stats?.new ?? 0) > 0 || 
+                   (selectedDeck.stats?.due ?? 0) > 0 || 
+                   (selectedDeck.stats?.review ?? 0) > 0,
+          stats: selectedDeck.stats
+        });
+
+        await startStudySession(selectedDeck.id);
+        shouldStartStudy.current = false;
+        
+        // Don't set initialized here - wait for cards to load
+        console.log('[StudyPage] Study session started, waiting for cards');
+      } catch (error) {
+        console.error('[StudyPage] Failed to start study session:', error);
+        setIsInitializing(false);
+        shouldStartStudy.current = false;
+      }
+    }
+
+    void startStudy();
+  }, [selectedDeck, isInitializing, isInitialized, startStudySession]);
+
+  // Effect to track card loading
+  useEffect(() => {
+    if (cards.length > 0 && currentCard && isInitializing) {
+      console.log('[StudyPage] Cards loaded:', {
+        cardsCount: cards.length,
+        currentCard: currentCard.id,
+        isInitializing
+      });
+      setIsInitialized(true);
+      setIsInitializing(false);
+    }
+  }, [cards, currentCard, isInitializing]);
+
+  // Handle completion navigation
   useEffect(() => {
     if (isCompleted && selectedDeck) {
       navigate(`/study/${selectedDeck.id}/complete`);
     }
   }, [isCompleted, selectedDeck, navigate]);
 
-  if (isLoadingDeck || isLoadingStudy) {
+  // Show loading state while initializing
+  if (isLoadingDeck || isLoadingStudy || isInitializing || (!isInitialized && !currentCard)) {
+    console.log('[StudyPage] Still loading:', {
+      isLoadingDeck,
+      isLoadingStudy,
+      isInitializing,
+      isInitialized,
+      hasCards: cards.length > 0,
+      currentCard: currentCard?.id,
+      timestamp: new Date().toISOString()
+    });
     return (
       <PageLayout>
         <div className="flex items-center justify-center min-h-[50vh]">
