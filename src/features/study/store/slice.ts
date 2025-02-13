@@ -3,6 +3,7 @@ import type { StudySlice, StoreState } from '../../../shared/types';
 import type { Flashcard, StudyProgress } from '../../../shared/services/idb/schema';
 import { getTodayStudyLog, updateStudyLog, getDeckProgress, updateProgress } from '../../../shared/services/idb';
 import { fetchAndStoreFlashcards } from '../../../shared/services/flashcards';
+import { saveProgress } from '../../../shared/services/orbis';
 
 export const createStudySlice: StateCreator<StoreState, [], [], StudySlice> = (set, get) => ({
   deckId: null,
@@ -334,21 +335,33 @@ export const createStudySlice: StateCreator<StoreState, [], [], StudySlice> = (s
     try {
       set({ isLoading: true, error: null });
       
-      // TODO: Save progress to Ceramic
+      // Get progress from IDB
+      if (!deckId) {
+        throw new Error('No deck ID found');
+      }
+
+      const progress = await getDeckProgress(deckId);
       console.log('[completeSession] Saving to Ceramic:', {
-        totalCards: cards.length
+        totalCards: cards.length,
+        progressEntries: progress.length
       });
-      
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Get Orbis instance
+      const orbis = get().orbis;
+      if (!orbis) {
+        throw new Error('Orbis not connected');
+      }
+
+      // Save progress to Orbis
+      await saveProgress(progress);
+      console.log('[completeSession] Progress saved to Orbis');
       
       // Reset study state and clear session storage
       sessionStorage.removeItem('hasCompletedStudy');
       
       // Update hasStudiedToday flag
-      if (deckId) {
-        const todayLog = await getTodayStudyLog(deckId);
-        set({ hasStudiedToday: todayLog ? todayLog.cards_studied.length > 0 : false });
-      }
+      const todayLog = await getTodayStudyLog(deckId);
+      set({ hasStudiedToday: todayLog ? todayLog.cards_studied.length > 0 : false });
       
       set({
         isLoading: false,
@@ -363,6 +376,7 @@ export const createStudySlice: StateCreator<StoreState, [], [], StudySlice> = (s
     } catch (error) {
       console.error('[completeSession] Failed:', error);
       set({ error: 'Failed to save progress', isLoading: false });
+      throw error;
     }
   },
 });
