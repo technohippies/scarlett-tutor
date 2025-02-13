@@ -27,6 +27,7 @@ export interface DecksSlice {
   addDeck: (deck: Deck) => void;
   removeDeck: (deckId: number) => void;
   updateDeckStats: (deckId: number, stats: DeckStats) => void;
+  updateDeckLastSynced: (deckId: number, timestamp: number) => void;
 }
 
 // Study slice

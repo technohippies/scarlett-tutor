@@ -1,6 +1,6 @@
 import { OrbisDB } from '@useorbis/db-sdk';
 import type { StudyProgress } from "../idb/schema";
-import { updateProgress } from "../idb";
+import { updateProgress, updateDeckLastSynced } from "../idb";
 import { 
   CONTEXT_ID, 
   PROGRESS_MODEL, 
@@ -11,6 +11,7 @@ import {
   SaveResult, 
   SaveResults 
 } from './models';
+import { useStore } from '../../../store';
 
 interface OrbisConnectResult {
   user: {
@@ -161,9 +162,8 @@ export function orbisToAppProgress(orbisProgress: OrbisProgressDocument): Omit<S
 }
 
 // Progress management functions
-export async function saveProgress(progress: StudyProgress[]) {
+export async function saveProgress(progress: StudyProgress[]): Promise<boolean> {
   const MAX_RETRIES = 3;
-  const RETRY_DELAY = 2000; // 2 seconds base delay
   const BATCH_SIZE = 1; // Save one at a time to reduce load
   let lastError: Error | null = null;
 
@@ -245,27 +245,45 @@ export async function saveProgress(progress: StudyProgress[]) {
 
       // Update local progress with sync timestamp
       const now = new Date().toISOString();
+      const timestamp = Date.now();
+      console.log('[saveProgress] Updating timestamps:', {
+        isoString: now,
+        timestamp,
+        deckId: progress[0].deck_id
+      });
+
       const updatedProgress = progress.map(p => ({
         ...p,
         last_synced: now
       } as StudyProgress & { last_synced: string }));
 
-      // Update progress in IDB with sync timestamp
-      for (const p of updatedProgress) {
-        await updateProgress(p);
+      // Update progress and deck in IDB with sync timestamp
+      console.log('[saveProgress] Updating IDB:', {
+        progressCount: updatedProgress.length,
+        firstProgress: updatedProgress[0],
+        deckId: updatedProgress[0].deck_id,
+        timestamp
+      });
+
+      try {
+        // Update IDB
+        await Promise.all([
+          ...updatedProgress.map(p => updateProgress(p)),
+          updateDeckLastSynced(updatedProgress[0].deck_id, timestamp)
+        ]);
+        console.log('[saveProgress] Successfully updated IDB timestamps');
+
+        // Update store
+        const store = useStore.getState();
+        store.updateDeckLastSynced(updatedProgress[0].deck_id, timestamp);
+      } catch (error) {
+        console.error('[saveProgress] Failed to update timestamps:', error);
       }
 
-      return results.success;
+      return true;
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Unknown error');
-      console.error(`[saveProgress] Attempt ${attempt + 1} failed:`, error);
-      
-      if (attempt < MAX_RETRIES - 1) {
-        // Wait longer between retries with exponential backoff
-        const delay = RETRY_DELAY * Math.pow(2, attempt);
-        console.log(`[saveProgress] Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
+      console.error('[saveProgress] Failed to save progress:', error);
+      return false;
     }
   }
 

@@ -12,15 +12,21 @@ import { config } from '../../../shared/services/wagmi';
 import { X } from '@phosphor-icons/react';
 
 function formatLastSynced(timestamp: number | undefined): string {
+  console.log('[formatLastSynced] Formatting timestamp:', timestamp);
   if (!timestamp) return 'Never';
 
   const now = new Date();
   const lastSynced = new Date(timestamp);
   const diffInDays = Math.floor((now.getTime() - lastSynced.getTime()) / (1000 * 60 * 60 * 24));
 
+  console.log('[formatLastSynced] Time difference:', {
+    now: now.toISOString(),
+    lastSynced: lastSynced.toISOString(),
+    diffInDays
+  });
+
   if (diffInDays === 0) {
-    // Today - show time
-    return lastSynced.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return 'Today';
   } else if (diffInDays === 1) {
     return 'Yesterday';
   } else {
@@ -29,7 +35,12 @@ function formatLastSynced(timestamp: number | undefined): string {
 }
 
 function LastSynced({ timestamp }: { timestamp: number | undefined }) {
-  const text = formatLastSynced(timestamp);
+  const { hasStudiedToday } = useDecksStatus();
+  console.log('[LastSynced] Rendering with:', { timestamp, hasStudiedToday });
+  
+  // If studied today, show "Today" regardless of timestamp
+  const text = hasStudiedToday ? 'Today' : formatLastSynced(timestamp);
+  
   return (
     <div className="text-sm text-muted-foreground">
       Last Saved: {text}
@@ -178,7 +189,7 @@ export function DeckPage() {
         >
           <X className="w-5 h-5" />
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight">{selectedDeck.name}</h1>
+        <h1 className="text-xl font-bold tracking-tight">{selectedDeck.name}</h1>
       </div>
 
       {contractError && (

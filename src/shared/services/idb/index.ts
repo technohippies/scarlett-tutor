@@ -50,6 +50,20 @@ export async function getAllDecks() {
   return db.getAll('decks');
 }
 
+export async function updateDeckLastSynced(deckId: number, timestamp: number) {
+  const db = await initDB();
+  console.log('[updateDeckLastSynced] Updating deck:', { deckId, timestamp });
+  const deck = await db.get('decks', deckId);
+  console.log('[updateDeckLastSynced] Current deck:', deck);
+  if (deck) {
+    const updatedDeck = { ...deck, last_synced: timestamp };
+    console.log('[updateDeckLastSynced] Saving updated deck:', updatedDeck);
+    return db.put('decks', updatedDeck);
+  } else {
+    console.warn('[updateDeckLastSynced] Deck not found:', deckId);
+  }
+}
+
 // Flashcard operations
 export async function addFlashcards(deckId: number, flashcards: Omit<Flashcard, 'id'>[]) {
   const db = await initDB();
@@ -96,8 +110,8 @@ export async function getStudyLog(date: string, deckId: number) {
 }
 
 export async function getTodayStudyLog(deckId: number) {
-  const date = new Date().toISOString().split('T')[0];
-  return getStudyLog(date, deckId);
+  const today = new Date().toISOString().split('T')[0];
+  return getStudyLog(today, deckId);
 }
 
 // Utility functions

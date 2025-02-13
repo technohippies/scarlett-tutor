@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import type { DecksSlice, StoreState } from '../../../shared/types';
+import type { StoreState } from '../../../shared/types';
 import type { Deck } from '../../../shared/services/idb/schema';
 import { TablelandClient } from '../../../shared/services/tableland';
 import { getTodayStudyLog } from '../../../shared/services/idb';
@@ -15,6 +15,7 @@ export interface DecksSlice {
   addDeck: (deck: Deck) => void;
   removeDeck: (deckId: number) => void;
   updateDeckStats: (deckId: number, stats: { new: number; due: number; review: number }) => void;
+  updateDeckLastSynced: (deckId: number, timestamp: number) => void;
 }
 
 const tableland = TablelandClient.getInstance();
@@ -104,6 +105,23 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
     set({
       decks: updatedDecks,
       selectedDeck: selectedDeck?.id === deckId ? { ...selectedDeck, stats } : selectedDeck,
+    });
+  },
+
+  updateDeckLastSynced: (deckId: number, timestamp: number) => {
+    const { decks, selectedDeck } = get();
+    console.log('[DecksSlice] Updating deck last_synced:', {
+      deckId,
+      timestamp,
+      currentSelectedDeck: selectedDeck?.id
+    });
+    
+    const updatedDecks = decks.map((deck) =>
+      deck.id === deckId ? { ...deck, last_synced: timestamp } : deck
+    );
+    set({
+      decks: updatedDecks,
+      selectedDeck: selectedDeck?.id === deckId ? { ...selectedDeck, last_synced: timestamp } : selectedDeck,
     });
   },
 });
