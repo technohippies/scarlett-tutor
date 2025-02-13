@@ -11,12 +11,12 @@ export function CompletionPage() {
   const { deckId } = useParams();
   const navigate = useNavigate();
   const { completeSession } = useStudyActions();
-  const { isCompleted, isSessionComplete } = useStudyStatus();
   const isWalletConnected = useWalletStatus();
   const { connectWallet, connectOrbis } = useAuthActions();
   const { isOrbisConnected } = useAuthClients();
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   // Prevent direct access
   useEffect(() => {
@@ -26,42 +26,16 @@ export function CompletionPage() {
     }
   }, [deckId, navigate]);
 
-  // Verify session state and redirect if invalid
-  useEffect(() => {
-    if (!isCompleted || !isSessionComplete) {
-      console.log('[CompletionPage] Invalid session state, redirecting...', { isCompleted, isSessionComplete });
-      navigate(`/decks/${deckId}`);
-    }
-  }, [isCompleted, isSessionComplete, navigate, deckId]);
-
   const handleConnectCeramic = async () => {
     try {
       setIsSaving(true);
       setError(null);
       console.log('[CompletionPage] Connecting to Ceramic...');
       await connectOrbis();
-      
-      // Wait a bit to ensure the connection is established
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (!isOrbisConnected) {
-        throw new Error('Failed to establish Ceramic connection');
-      }
-      
-      console.log('[CompletionPage] Connected to Ceramic, checking session state...');
-      
-      // Verify session state before proceeding
-      if (!isCompleted || !isSessionComplete) {
-        console.warn('[CompletionPage] Session not complete, redirecting...');
-        navigate(`/decks/${deckId}`);
-        return;
-      }
-      
-      console.log('[CompletionPage] Session state verified, saving progress...');
       await handleSaveProgress();
     } catch (error) {
       console.error('[CompletionPage] Failed to connect to Ceramic:', error);
-      setError('Failed to connect to Ceramic. Please try again.');
+      setError('Failed to connect. Please try again.');
       setIsSaving(false);
     }
   };
@@ -72,22 +46,18 @@ export function CompletionPage() {
       return;
     }
 
-    if (!isOrbisConnected) {
-      await handleConnectCeramic();
-      return;
-    }
-
     setIsSaving(true);
     setError(null);
+    setIsSuccess(false);
 
     try {
       console.log('[CompletionPage] Saving progress to Ceramic');
       await completeSession();
       console.log('[CompletionPage] Progress saved successfully');
-      navigate(`/decks/${deckId}`);
+      setIsSuccess(true);
     } catch (err) {
       console.error('[CompletionPage] Failed to save progress:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save progress. Please try again.');
+      setError('Failed to save progress. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -104,15 +74,25 @@ export function CompletionPage() {
           }
         />
 
+        <p className="text-md text-neutral-300">
+          Save your flashcard data to Ceramic for free! Ceramic is a web3 database that is reliable and secure.
+        </p>
+
         {error && (
-          <div className="rounded-md bg-destructive/15 p-4">
+          <div className="rounded-md bg-destructive/15 p-4 mx-4">
             <p className="text-sm text-destructive">{error}</p>
+          </div>
+        )}
+
+        {isSuccess && (
+          <div className="rounded-md bg-green-500/10 p-4 mx-4">
+            <p className="text-sm text-green-400">Progress saved successfully!</p>
           </div>
         )}
 
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/60 border-t border-neutral-800">
           <div className="container max-w-6xl mx-auto sm:px-6 lg:px-8">
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center">
               {!isWalletConnected ? (
                 <button
                   onClick={connectWallet}
@@ -136,27 +116,26 @@ export function CompletionPage() {
                   )}
                 </button>
               ) : (
-                <div className="flex w-full gap-4">
+                <div className="w-full space-y-4">
                   {isSaving ? (
                     <div className="w-full flex items-center justify-center gap-3 h-12 text-neutral-400">
                       <Loader className="w-5 h-5" />
                       <span>Saving progress...</span>
                     </div>
+                  ) : isSuccess ? (
+                    <button
+                      onClick={() => navigate(`/decks/${deckId}`)}
+                      className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-blue-500 text-white shadow-lg hover:bg-blue-600 active:bg-blue-700 h-12"
+                    >
+                      Return to Deck
+                    </button>
                   ) : (
-                    <>
-                      <button
-                        onClick={handleSaveProgress}
-                        className="w-[45%] inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-blue-500 text-white shadow-lg hover:bg-blue-600 active:bg-blue-700 h-12"
-                      >
-                        Save Progress
-                      </button>
-                      <button
-                        onClick={() => navigate(`/decks/${deckId}`)}
-                        className="w-[45%] inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 bg-neutral-600 text-white shadow-lg hover:bg-neutral-700 active:bg-neutral-800 h-12"
-                      >
-                        Skip
-                      </button>
-                    </>
+                    <button
+                      onClick={handleSaveProgress}
+                      className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-blue-500 text-white shadow-lg hover:bg-blue-600 active:bg-blue-700 h-12"
+                    >
+                      Save Progress
+                    </button>
                   )}
                 </div>
               )}

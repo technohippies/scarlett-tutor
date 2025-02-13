@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { useSelectedDeck, useDecksStatus, useDecksActions } from '../store/hooks';
 import { useWalletStatus, useWalletAddress, useAuthActions } from '../../auth/store/hooks';
@@ -12,18 +12,11 @@ import { PageHeader } from '../../../shared/components/page-header';
 import { PageLayout } from '../../../features/ui/components/page-layout';
 
 function formatLastSynced(timestamp: number | undefined): string {
-  console.log('[formatLastSynced] Formatting timestamp:', timestamp);
   if (!timestamp) return 'Never';
 
   const now = new Date();
   const lastSynced = new Date(timestamp);
   const diffInDays = Math.floor((now.getTime() - lastSynced.getTime()) / (1000 * 60 * 60 * 24));
-
-  console.log('[formatLastSynced] Time difference:', {
-    now: now.toISOString(),
-    lastSynced: lastSynced.toISOString(),
-    diffInDays
-  });
 
   if (diffInDays === 0) {
     return 'Today';
@@ -36,10 +29,11 @@ function formatLastSynced(timestamp: number | undefined): string {
 
 function LastSynced({ timestamp }: { timestamp: number | undefined }) {
   const { hasStudiedToday } = useDecksStatus();
-  console.log('[LastSynced] Rendering with:', { timestamp, hasStudiedToday });
   
-  // If studied today, show "Today" regardless of timestamp
-  const text = hasStudiedToday ? 'Today' : formatLastSynced(timestamp);
+  // Memoize the text to prevent unnecessary re-renders
+  const text = useMemo(() => {
+    return hasStudiedToday ? 'Today' : formatLastSynced(timestamp);
+  }, [hasStudiedToday, timestamp]);
   
   return (
     <div className="text-sm text-muted-foreground">
@@ -64,79 +58,72 @@ export function DeckPage() {
   const [contractError, setContractError] = useState<string | null>(null);
   const { hasStudiedToday } = useDecksStatus();
 
-  // Add effect to refresh stats when component is focused or mounted
-  useEffect(() => {
-    console.log('[DeckPage] Refreshing deck stats:', {
-      deckId,
-      currentStats: selectedDeck?.stats,
-      pathname: location.pathname,
-      timestamp: new Date().toISOString()
-    });
-
-    if (deckId) {
-      void selectDeck(Number(deckId));
+  // Memoize the refresh function to prevent unnecessary re-renders
+  const refreshDeck = useCallback(async () => {
+    if (!deckId) return;
+    
+    const numericDeckId = Number(deckId);
+    if (selectedDeck?.id !== numericDeckId) {
+      await selectDeck(numericDeckId);
     }
-  }, [deckId, selectDeck, location.key]); // location.key changes on navigation
+  }, [deckId, selectDeck, selectedDeck?.id]);
 
-  // Add effect to refresh stats when window is focused
+  // Single effect to handle all deck refreshes
   useEffect(() => {
+    let isActive = true;
+
+    async function handleRefresh() {
+      if (!isActive) return;
+      await refreshDeck();
+    }
+
+    // Initial load
+    void handleRefresh();
+
+    // Handle window focus
     const handleFocus = () => {
-      if (deckId) {
-        console.log('[DeckPage] Window focused, refreshing deck stats:', {
-          deckId,
-          currentStats: selectedDeck?.stats,
-          timestamp: new Date().toISOString()
-        });
-        void selectDeck(Number(deckId));
-      }
+      void handleRefresh();
     };
 
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [deckId, selectDeck, selectedDeck?.stats]);
+    return () => {
+      isActive = false;
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshDeck, location.key]); // Only re-run on navigation or when refresh function changes
 
   // Check wallet connection on mount
   useEffect(() => {
-    console.log('DeckPage mounted, checking wallet connection...');
     void checkWalletConnection();
   }, [checkWalletConnection]);
 
-  // Check if user owns the NFT
+  // Check NFT ownership
   useEffect(() => {
-    if (isWalletConnected && address && deckId) {
-      setContractError(null);
-      console.log('Checking NFT ownership for:', {
-        address,
-        deckId,
-        contractAddress: DECK_ACCESS_NFT_ADDRESS,
-        isWalletConnected
-      });
-      readContract(config, {
-        address: DECK_ACCESS_NFT_ADDRESS,
-        abi: DECK_ACCESS_NFT_ABI,
-        functionName: 'hasPurchased',
-        args: [getAddress(address), BigInt(deckId)],
-      }).then(result => {
-        console.log('NFT ownership check result:', result);
+    if (!isWalletConnected || !address || !deckId) return;
+
+    let isActive = true;
+    setContractError(null);
+
+    readContract(config, {
+      address: DECK_ACCESS_NFT_ADDRESS,
+      abi: DECK_ACCESS_NFT_ABI,
+      functionName: 'hasPurchased',
+      args: [getAddress(address), BigInt(deckId)],
+    }).then(result => {
+      if (isActive) {
         setHasNFT(!!result);
-      }).catch(err => {
+      }
+    }).catch(err => {
+      if (isActive) {
         console.error('Failed to check NFT ownership:', err);
         setContractError('Failed to check NFT ownership. Please make sure you are connected to Base Sepolia network.');
-      });
-    }
-  }, [isWalletConnected, address, deckId]);
+      }
+    });
 
-  // Add effect to refresh stats when cards are loaded into IDB
-  useEffect(() => {
-    if (deckId && cards.length > 0) {
-      console.log('[DeckPage] Cards loaded into IDB, refreshing stats:', {
-        deckId,
-        cardsCount: cards.length,
-        timestamp: new Date().toISOString()
-      });
-      void selectDeck(Number(deckId));
-    }
-  }, [deckId, selectDeck, cards.length]);
+    return () => {
+      isActive = false;
+    };
+  }, [isWalletConnected, address, deckId]);
 
   const handlePurchase = async () => {
     if (deckId && isWalletConnected && address) {

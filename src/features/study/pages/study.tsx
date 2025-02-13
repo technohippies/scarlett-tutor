@@ -188,7 +188,7 @@ export function StudyPage() {
                 onClick={() => flipCard()}
                 className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-blue-500 text-white shadow-lg hover:bg-blue-600 active:bg-blue-700 h-12 px-4"
               >
-                Show Answer
+                Flip
               </button>
             ) : (
               <>
