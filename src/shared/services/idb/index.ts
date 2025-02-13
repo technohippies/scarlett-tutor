@@ -116,18 +116,54 @@ export async function getTodayStudyLog(deckId: number) {
 
 // Utility functions
 export async function getDeckStats(deckId: number) {
-  const today = new Date().toISOString().split('T')[0];
-  
-  const [progress, todayLog] = await Promise.all([
+  const [flashcards, progress, todayLog] = await Promise.all([
+    getDeckFlashcards(deckId),
     getDeckProgress(deckId),
-    getStudyLog(today, deckId),
+    getTodayStudyLog(deckId)
   ]);
 
+  console.log('[getDeckStats] Raw data:', {
+    deckId,
+    flashcardsCount: flashcards.length,
+    progressCount: progress.length,
+    todayLog
+  });
+
   const now = new Date();
-  
-  return {
-    new: todayLog?.new_cards_remaining ?? 20,
-    due: progress?.filter(p => new Date(p.next_review) <= now).length ?? 0,
-    review: progress?.length ?? 0,
+  const studiedToday = todayLog?.cards_studied || [];
+  const cardProgress = new Map(progress.map(p => [`${p.deck_id}-${p.flashcard_id}`, p]));
+
+  // Filter cards into categories
+  const { newCards, dueCards } = flashcards.reduce((acc, card) => {
+    if (studiedToday.includes(card.id)) {
+      return acc;
+    }
+
+    const cardProg = cardProgress.get(`${deckId}-${card.id}`);
+    if (!cardProg) {
+      acc.newCards.push(card);
+    } else if (new Date(cardProg.next_review) <= now) {
+      acc.dueCards.push(card);
+    }
+    return acc;
+  }, { newCards: [] as typeof flashcards, dueCards: [] as typeof flashcards });
+
+  // Calculate stats
+  const stats = {
+    new: newCards.length,          // Total number of cards without progress
+    due: dueCards.length,          // Number of cards due for review
+    review: progress.length        // Total number of cards with progress
   };
+
+  console.log('[getDeckStats] Calculated stats:', {
+    deckId,
+    stats,
+    studiedTodayCount: studiedToday.length,
+    newCardsCount: newCards.length,
+    dueCardsCount: dueCards.length,
+    totalProgressCount: progress.length,
+    remainingNewToday: todayLog?.new_cards_remaining ?? 20
+  });
+
+  return stats;
 }

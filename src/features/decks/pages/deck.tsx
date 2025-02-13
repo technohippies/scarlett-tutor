@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { useSelectedDeck, useDecksStatus, useDecksActions } from '../store/hooks';
 import { useWalletStatus, useWalletAddress, useAuthActions } from '../../auth/store/hooks';
-import { Card } from '../../../shared/components/card';
-import { StatsBadge } from '../../../shared/components/stats-badge';
+import { useStudyData } from '../../study/store/hooks';
 import { Loader } from '../../../shared/components/loader';
 import { readContract, writeContract, waitForTransactionReceipt } from '@wagmi/core';
 import { DECK_ACCESS_NFT_ABI, DECK_ACCESS_NFT_ADDRESS } from '../../../shared/constants';
 import { parseEther, getAddress } from 'viem';
 import { config } from '../../../shared/services/wagmi';
-import { X } from '@phosphor-icons/react';
+import { PageHeader } from '../../../shared/components/page-header';
+import { PageLayout } from '../../../features/ui/components/page-layout';
 
 function formatLastSynced(timestamp: number | undefined): string {
   console.log('[formatLastSynced] Formatting timestamp:', timestamp);
@@ -48,30 +48,13 @@ function LastSynced({ timestamp }: { timestamp: number | undefined }) {
   );
 }
 
-function CardStats({ stats }: { stats: { new: number; due: number; review: number } }) {
-  return (
-    <div className="flex gap-4 items-center">
-      <div className="text-center">
-        <p className="text-sm font-medium text-muted-foreground">New</p>
-        <p className="text-2xl font-bold">{stats.new}</p>
-      </div>
-      <div className="text-center">
-        <p className="text-sm font-medium text-muted-foreground">Review</p>
-        <p className="text-2xl font-bold">{stats.review}</p>
-      </div>
-      <div className="text-center">
-        <p className="text-sm font-medium text-muted-foreground">Due</p>
-        <p className="text-2xl font-bold">{stats.due}</p>
-      </div>
-    </div>
-  );
-}
-
 export function DeckPage() {
   const { deckId } = useParams();
+  const location = useLocation();
   const selectedDeck = useSelectedDeck();
   const { isLoading, error } = useDecksStatus();
   const { selectDeck } = useDecksActions();
+  const { cards } = useStudyData();
   const isWalletConnected = useWalletStatus();
   const address = useWalletAddress();
   const { connectWallet, checkWalletConnection } = useAuthActions();
@@ -80,6 +63,37 @@ export function DeckPage() {
   const [hasNFT, setHasNFT] = useState(false);
   const [contractError, setContractError] = useState<string | null>(null);
   const { hasStudiedToday } = useDecksStatus();
+
+  // Add effect to refresh stats when component is focused or mounted
+  useEffect(() => {
+    console.log('[DeckPage] Refreshing deck stats:', {
+      deckId,
+      currentStats: selectedDeck?.stats,
+      pathname: location.pathname,
+      timestamp: new Date().toISOString()
+    });
+
+    if (deckId) {
+      void selectDeck(Number(deckId));
+    }
+  }, [deckId, selectDeck, location.key]); // location.key changes on navigation
+
+  // Add effect to refresh stats when window is focused
+  useEffect(() => {
+    const handleFocus = () => {
+      if (deckId) {
+        console.log('[DeckPage] Window focused, refreshing deck stats:', {
+          deckId,
+          currentStats: selectedDeck?.stats,
+          timestamp: new Date().toISOString()
+        });
+        void selectDeck(Number(deckId));
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [deckId, selectDeck, selectedDeck?.stats]);
 
   // Check wallet connection on mount
   useEffect(() => {
@@ -111,6 +125,18 @@ export function DeckPage() {
       });
     }
   }, [isWalletConnected, address, deckId]);
+
+  // Add effect to refresh stats when cards are loaded into IDB
+  useEffect(() => {
+    if (deckId && cards.length > 0) {
+      console.log('[DeckPage] Cards loaded into IDB, refreshing stats:', {
+        deckId,
+        cardsCount: cards.length,
+        timestamp: new Date().toISOString()
+      });
+      void selectDeck(Number(deckId));
+    }
+  }, [deckId, selectDeck, cards.length]);
 
   const handlePurchase = async () => {
     if (deckId && isWalletConnected && address) {
@@ -145,95 +171,88 @@ export function DeckPage() {
     }
   };
 
-  useEffect(() => {
-    if (deckId) {
-      void selectDeck(Number(deckId));
-    }
-  }, [deckId, selectDeck]);
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader />
-      </div>
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader />
+        </div>
+      </PageLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-destructive">{error}</p>
-      </div>
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <p className="text-destructive">{error}</p>
+        </div>
+      </PageLayout>
     );
   }
 
   if (!selectedDeck) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground">Deck not found</p>
-      </div>
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <p className="text-muted-foreground">Deck not found</p>
+        </div>
+      </PageLayout>
     );
   }
 
   const isPaid = selectedDeck.price > 0;
   const canStudy = !isPaid || hasNFT;
   const isTransacting = isPurchasing || isConfirming;
-  const studyButtonText = hasStudiedToday ? 'Study Again' : 'Start Studying';
+  const studyButtonText = hasStudiedToday ? 'Study Again' : 'Study';
+
+  // Helper to check if stats exist and are non-zero
+  const hasStats = selectedDeck.stats && (
+    selectedDeck.stats.new > 0 ||
+    selectedDeck.stats.review > 0 ||
+    selectedDeck.stats.due > 0
+  );
+
+  console.log('[DeckPage] Rendering with stats:', {
+    hasStats,
+    stats: selectedDeck.stats,
+    timestamp: new Date().toISOString()
+  });
 
   return (
-    <div className="space-y-8 pb-24">
-      <div className="flex items-center gap-4">
-        <Link 
-          to="/"
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:bg-neutral-800 h-9 w-9"
-        >
-          <X className="w-5 h-5" />
-        </Link>
-        <h1 className="text-xl font-bold tracking-tight">{selectedDeck.name}</h1>
-      </div>
+    <PageLayout fullWidth>
+      <div className="space-y-8 pb-24">
+        <PageHeader 
+          backTo="/" 
+          title={selectedDeck.name}
+          rightContent={<LastSynced timestamp={selectedDeck.last_synced} />}
+        />
 
-      {contractError && (
-        <div className="rounded-md bg-destructive/15 p-4">
-          <p className="text-sm text-destructive">{contractError}</p>
-        </div>
-      )}
+        {contractError && (
+          <div className="rounded-md bg-destructive/15 p-4">
+            <p className="text-sm text-destructive">{contractError}</p>
+          </div>
+        )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-8">
-          <Card>
-            <Card.Header>
-              <Card.Title>Description</Card.Title>
-              <Card.Description>{selectedDeck.description}</Card.Description>
-            </Card.Header>
-            <Card.Content>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{selectedDeck.category}</span>
-                  <span>•</span>
-                  <span>{selectedDeck.language}</span>
-                  {isPaid && (
-                    <>
-                      <span>•</span>
-                      <span>{selectedDeck.price} ETH</span>
-                    </>
-                  )}
-                </div>
-                {selectedDeck.stats && (
-                  <CardStats stats={selectedDeck.stats} />
-                )}
-                <LastSynced timestamp={selectedDeck.last_synced} />
+        <div className="space-y-8">
+          <p className="text-lg text-muted-foreground">{selectedDeck.description}</p>
+
+          {hasStats && (
+            <div className="grid grid-cols-3 gap-8">
+              <div className="p-4 bg-neutral-800/50 rounded-lg">
+                <p className="text-sm text-neutral-500">New</p>
+                <p className="text-3xl font-bold mt-2">{selectedDeck.stats?.new || 0}</p>
               </div>
-            </Card.Content>
-            {selectedDeck.stats && (
-              <Card.Footer className="gap-2">
-                <StatsBadge label="New" value={selectedDeck.stats.new} />
-                <StatsBadge label="Due" value={selectedDeck.stats.due} />
-                <StatsBadge label="Review" value={selectedDeck.stats.review} />
-              </Card.Footer>
-            )}
-          </Card>
-
-          {/* TODO: Add flashcards list */}
+              <div className="p-4 bg-neutral-800/50 rounded-lg">
+                <p className="text-sm text-neutral-500">Review</p>
+                <p className="text-3xl font-bold mt-2">{selectedDeck.stats?.review || 0}</p>
+              </div>
+              <div className="p-4 bg-neutral-800/50 rounded-lg">
+                <p className="text-sm text-neutral-500">Due</p>
+                <p className="text-3xl font-bold mt-2">{selectedDeck.stats?.due || 0}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/60 border-t border-neutral-800">
@@ -275,6 +294,6 @@ export function DeckPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 } 

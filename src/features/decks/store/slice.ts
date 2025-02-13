@@ -2,7 +2,7 @@ import { StateCreator } from 'zustand';
 import type { StoreState } from '../../../shared/types';
 import type { Deck } from '../../../shared/services/idb/schema';
 import { TablelandClient } from '../../../shared/services/tableland';
-import { getTodayStudyLog } from '../../../shared/services/idb';
+import { getTodayStudyLog, getDeckStats } from '../../../shared/services/idb';
 
 export interface DecksSlice {
   decks: Deck[];
@@ -58,13 +58,15 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
 
   selectDeck: async (deckId: number) => {
     const state = get();
-    if (state.selectedDeck?.id === deckId) {
-      return;
-    }
-
     try {
       set({ isLoading: true, error: null });
-      const deck = await tableland.getDeck(deckId);
+      
+      // Get deck data and stats in parallel
+      const [deck, stats] = await Promise.all([
+        tableland.getDeck(deckId),
+        getDeckStats(deckId)
+      ]);
+      
       if (!deck) {
         throw new Error('Deck not found');
       }
@@ -73,8 +75,15 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
       const todayLog = await getTodayStudyLog(deckId);
       const hasStudiedToday = todayLog ? todayLog.cards_studied.length > 0 : false;
 
+      console.log('[DecksSlice] Updating deck:', {
+        deckId,
+        stats,
+        hasStudiedToday,
+        timestamp: new Date().toISOString()
+      });
+
       set({ 
-        selectedDeck: deck, 
+        selectedDeck: { ...deck, stats }, 
         isLoading: false,
         hasStudiedToday
       });
