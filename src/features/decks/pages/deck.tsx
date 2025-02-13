@@ -11,6 +11,32 @@ import { parseEther, getAddress } from 'viem';
 import { config } from '../../../shared/services/wagmi';
 import { X } from '@phosphor-icons/react';
 
+function formatLastSynced(timestamp: number | undefined): string {
+  if (!timestamp) return 'Never';
+
+  const now = new Date();
+  const lastSynced = new Date(timestamp);
+  const diffInDays = Math.floor((now.getTime() - lastSynced.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffInDays === 0) {
+    // Today - show time
+    return lastSynced.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  } else if (diffInDays === 1) {
+    return 'Yesterday';
+  } else {
+    return `${diffInDays} days ago`;
+  }
+}
+
+function LastSynced({ timestamp }: { timestamp: number | undefined }) {
+  const text = formatLastSynced(timestamp);
+  return (
+    <div className="text-sm text-muted-foreground">
+      Last Saved: {text}
+    </div>
+  );
+}
+
 function CardStats({ stats }: { stats: { new: number; due: number; review: number } }) {
   return (
     <div className="flex gap-4 items-center">
@@ -184,6 +210,7 @@ export function DeckPage() {
                 {selectedDeck.stats && (
                   <CardStats stats={selectedDeck.stats} />
                 )}
+                <LastSynced timestamp={selectedDeck.last_synced} />
               </div>
             </Card.Content>
             {selectedDeck.stats && (

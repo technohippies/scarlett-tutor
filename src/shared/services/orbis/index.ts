@@ -1,6 +1,16 @@
-import { OrbisDB } from "@useorbis/db-sdk";
+import { OrbisDB } from '@useorbis/db-sdk';
 import type { StudyProgress } from "../idb/schema";
 import { updateProgress } from "../idb";
+import { 
+  CONTEXT_ID, 
+  PROGRESS_MODEL, 
+  CERAMIC_NODE_URL,
+  ORBIS_NODE_URL,
+  ORBIS_ENVIRONMENT_ID,
+  OrbisProgressDocument, 
+  SaveResult, 
+  SaveResults 
+} from './models';
 
 interface OrbisConnectResult {
   user: {
@@ -9,13 +19,6 @@ interface OrbisConnectResult {
   };
   [key: string]: any;
 }
-
-// Load environment variables
-const CERAMIC_NODE_URL = import.meta.env.VITE_CERAMIC_NODE_URL || 'https://ceramic-orbisdb-mainnet-direct.hirenodes.io/';
-const ORBIS_NODE_URL = import.meta.env.VITE_ORBIS_NODE_URL || 'https://studio.useorbis.com/';
-const ORBIS_ENVIRONMENT_ID = import.meta.env.VITE_ORBIS_ENVIRONMENT_ID || 'did:pkh:eip155:1:0x25b4048c3b3c58973571db2dbbf87103f7406966';
-const ORBIS_CONTEXT_ID = import.meta.env.VITE_ORBIS_CONTEXT_ID || 'kjzl6kcym7w8y6v8xczuys0vm27mcatj3acgc1zjk0stqp9ac457uwzm2lbrzwm';
-const ORBIS_PROGRESS_MODEL_ID = import.meta.env.VITE_ORBIS_USER_PROGRESS || 'kjzl6hvfrbw6c9nl7ovnm2984hwhe0bp1whiiqghwuhv71goef895vaflw5reb3';
 
 console.log('Initializing OrbisDB...');
 export const db = new OrbisDB({
@@ -31,10 +34,6 @@ export const db = new OrbisDB({
 });
 
 console.log('OrbisDB initialized:', db);
-
-// Export constants for use in other files
-export const CONTEXT_ID = ORBIS_CONTEXT_ID;
-export const PROGRESS_MODEL = ORBIS_PROGRESS_MODEL_ID;
 
 // Session management
 let storageSession: Promise<void> | null = null;
@@ -94,8 +93,22 @@ export function isSessionExpired(lastAuthenticated: string): boolean {
 
 // Type definitions for Orbis models
 export interface OrbisProgress {
-  stream_id: string;
-  controller: string;
+  difficulty: number;
+  deck_id: number;
+  flashcard_id: number;
+  reps: number;
+  lapses: number;
+  stability: number;
+  last_review: string;
+  next_review: string;
+  correct_reps: number;
+  last_interval: number;
+  retrievability: number;
+  last_synced: string;
+}
+
+// Helper functions to convert between Orbis and app models
+export function appToOrbisProgress(progress: StudyProgress): {
   deck_id: number;
   flashcard_id: number;
   reps: number;
@@ -107,13 +120,9 @@ export interface OrbisProgress {
   correct_reps: number;
   last_interval: number;
   retrievability: number;
-  _metadata_context: string;
-  indexed_at: string;
-}
-
-// Helper functions to convert between Orbis and app models
-export function appToOrbisProgress(progress: StudyProgress): Omit<OrbisProgress, 'stream_id' | 'controller' | '_metadata_context' | 'indexed_at'> {
-  return {
+} {
+  // Only include fields that are in the model schema
+  const orbisProgress = {
     deck_id: progress.deck_id,
     flashcard_id: progress.flashcard_id,
     reps: progress.reps,
@@ -124,11 +133,18 @@ export function appToOrbisProgress(progress: StudyProgress): Omit<OrbisProgress,
     next_review: progress.next_review,
     correct_reps: progress.reps - progress.lapses,
     last_interval: progress.last_interval || 0,
-    retrievability: progress.retrievability || 0,
+    retrievability: progress.retrievability || 0
   };
+
+  console.log('[appToOrbisProgress] Converting progress:', {
+    input: progress,
+    output: orbisProgress
+  });
+
+  return orbisProgress;
 }
 
-export function orbisToAppProgress(orbisProgress: OrbisProgress): StudyProgress {
+export function orbisToAppProgress(orbisProgress: OrbisProgressDocument): Omit<StudyProgress, 'last_synced'> & { last_synced: string } {
   return {
     deck_id: orbisProgress.deck_id,
     flashcard_id: orbisProgress.flashcard_id,
@@ -140,57 +156,125 @@ export function orbisToAppProgress(orbisProgress: OrbisProgress): StudyProgress 
     next_review: orbisProgress.next_review,
     last_interval: orbisProgress.last_interval,
     retrievability: orbisProgress.retrievability,
+    last_synced: orbisProgress.last_synced
   };
 }
 
 // Progress management functions
 export async function saveProgress(progress: StudyProgress[]) {
-  try {
-    console.log('[saveProgress] Saving progress to Orbis:', progress);
-    
-    // Ensure we have an active session
-    const user = await db.getConnectedUser();
-    if (!user) {
-      throw new Error('No authenticated user found');
-    }
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 2000; // 2 seconds base delay
+  const BATCH_SIZE = 1; // Save one at a time to reduce load
+  let lastError: Error | null = null;
 
-    // Convert app progress to Orbis format and add sync timestamp
-    const now = new Date().toISOString();
-    const orbisProgress = progress.map(p => ({
-      ...appToOrbisProgress(p),
-      last_synced: now
-    }));
-
-    // Save each progress entry using bulk insert
-    const { success, errors } = await db.insertBulk(PROGRESS_MODEL)
-      .values(orbisProgress)
-      .context(CONTEXT_ID)
-      .run();
-
-    if (errors.length > 0) {
-      console.error('[saveProgress] Some entries failed:', errors);
-    }
-
-    // Update local progress with sync timestamp
-    const updatedProgress = progress.map(p => ({
-      ...p,
-      last_synced: now
-    }));
-
-    // Update progress in IDB with sync timestamp
-    for (const p of updatedProgress) {
-      await updateProgress(p);
-    }
-
-    console.log('[saveProgress] Saved successfully:', success);
-    return success;
-  } catch (error) {
-    console.error('[saveProgress] Failed to save progress:', error);
-    throw error;
+  // Ensure we have an active session
+  const user = await db.getConnectedUser();
+  if (!user) {
+    throw new Error('No authenticated user found');
   }
+
+  // Convert app progress to Orbis format
+  const orbisProgress = progress.map(p => appToOrbisProgress(p));
+
+  // Try to save with retries
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      console.log(`[saveProgress] Attempt ${attempt + 1}/${MAX_RETRIES} to save progress:`, {
+        count: orbisProgress.length,
+        firstEntry: orbisProgress[0],
+        modelId: PROGRESS_MODEL,
+        contextId: CONTEXT_ID
+      });
+      
+      // Wait a bit longer after connection before trying to save
+      if (attempt === 0) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      const results: SaveResults = { success: [], errors: [] };
+
+      // Save one at a time with delay between each
+      for (let i = 0; i < orbisProgress.length; i += BATCH_SIZE) {
+        const batch = orbisProgress.slice(i, i + BATCH_SIZE);
+        
+        try {
+          // Add delay between saves
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+
+          console.log(`[saveProgress] Saving batch ${i / BATCH_SIZE + 1}:`, {
+            batch,
+            modelId: PROGRESS_MODEL,
+            contextId: CONTEXT_ID
+          });
+
+          const result = await db.insertBulk(PROGRESS_MODEL)
+            .values(batch)
+            .context(CONTEXT_ID)
+            .run() as unknown as SaveResult;
+
+          if (result.success?.length) {
+            results.success.push(...result.success);
+            console.log(`[saveProgress] Successfully saved batch ${i / BATCH_SIZE + 1}`);
+          }
+          
+          if (result.errors?.length) {
+            results.errors.push(...result.errors.map(err => ({
+              item: err.document as OrbisProgressDocument,
+              error: err.error?.message || 'Unknown error'
+            })));
+            console.error(`[saveProgress] Batch ${i / BATCH_SIZE + 1} had errors:`, result.errors);
+          }
+        } catch (batchError) {
+          console.error(`[saveProgress] Batch ${i / BATCH_SIZE + 1} failed:`, batchError);
+          results.errors.push(...batch.map(item => ({ 
+            item: item as OrbisProgressDocument, 
+            error: batchError instanceof Error ? batchError.message : 'Unknown error' 
+          })));
+        }
+      }
+
+      if (results.errors.length > 0) {
+        console.error('[saveProgress] Some entries failed:', results.errors);
+        throw new Error(`Failed to save ${results.errors.length} entries. First error: ${results.errors[0].error}`);
+      }
+
+      // If we get here, all saves were successful
+      console.log('[saveProgress] All entries saved successfully');
+
+      // Update local progress with sync timestamp
+      const now = new Date().toISOString();
+      const updatedProgress = progress.map(p => ({
+        ...p,
+        last_synced: now
+      } as StudyProgress & { last_synced: string }));
+
+      // Update progress in IDB with sync timestamp
+      for (const p of updatedProgress) {
+        await updateProgress(p);
+      }
+
+      return results.success;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Unknown error');
+      console.error(`[saveProgress] Attempt ${attempt + 1} failed:`, error);
+      
+      if (attempt < MAX_RETRIES - 1) {
+        // Wait longer between retries with exponential backoff
+        const delay = RETRY_DELAY * Math.pow(2, attempt);
+        console.log(`[saveProgress] Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  // If we get here, all retries failed
+  console.error('[saveProgress] All attempts failed:', lastError);
+  throw lastError;
 }
 
-export async function getProgress(deckId: number): Promise<StudyProgress[]> {
+export async function getProgress(deckId: number): Promise<(StudyProgress & { last_synced: string })[]> {
   try {
     console.log('[getProgress] Fetching progress for deck:', deckId);
     
@@ -199,7 +283,7 @@ export async function getProgress(deckId: number): Promise<StudyProgress[]> {
       .where({ deck_id: deckId })
       .run();
 
-    const progress = result.rows.map(row => orbisToAppProgress(row as OrbisProgress));
+    const progress = result.rows.map(row => orbisToAppProgress(row as OrbisProgressDocument));
     console.log('[getProgress] Fetched progress:', progress);
     return progress;
   } catch (error) {
