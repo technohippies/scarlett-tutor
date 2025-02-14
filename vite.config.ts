@@ -117,6 +117,40 @@ export default defineConfig({
       }
     })
   ],
+  resolve: {
+    alias: {
+      // Polyfills for Node.js built-ins
+      stream: 'stream-browserify',
+      buffer: 'buffer',
+      util: 'util',
+      crypto: 'crypto-browserify',
+      assert: 'assert',
+      http: 'stream-http',
+      https: 'https-browserify',
+      os: 'os-browserify/browser',
+      events: 'events',
+      path: 'path-browserify',
+      process: 'process/browser',
+      zlib: 'browserify-zlib'
+    }
+  },
+  define: {
+    global: 'globalThis',
+    'process.env': {},
+    process: {
+      env: {},
+      browser: true,
+      version: '"v16.7"',
+      nextTick: 'setImmediate'
+    }
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      }
+    }
+  },
   server: {
     port: 3000,
     strictPort: true,

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { LitNodeClient } from '@lit-protocol/lit-node-client';
 import type { OrbisDB } from '@useorbis/db-sdk';
 import type { Deck, Flashcard, DeckStats } from './index';
+import type { AuthMethod } from '@lit-protocol/auth-browser';
 
 // Auth slice
 export interface AuthSlice {

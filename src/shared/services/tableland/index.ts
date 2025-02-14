@@ -50,7 +50,8 @@ export class TablelandClient {
         id: Number(deck.id),
         // Convert price to Wei for blockchain transactions
         price: Number(deck.price),
-        priceInWei: convertTableLandPriceToWei(Number(deck.price))
+        // Convert BigInt to string for JSON serialization
+        priceInWei: convertTableLandPriceToWei(Number(deck.price)).toString()
       }));
     } catch (err) {
       const error = err as Error;
@@ -85,7 +86,8 @@ export class TablelandClient {
         id: Number(results[0].id),
         // Convert price to Wei for blockchain transactions
         price: Number(results[0].price),
-        priceInWei: convertTableLandPriceToWei(Number(results[0].price))
+        // Convert BigInt to string for JSON serialization
+        priceInWei: convertTableLandPriceToWei(Number(results[0].price)).toString()
       };
     } catch (err) {
       const error = err as Error;
