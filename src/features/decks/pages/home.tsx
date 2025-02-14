@@ -80,9 +80,6 @@ function HomePage() {
                     <Card.Header>
                       <Card.Title>{deck.name}</Card.Title>
                       <Card.Description>{deck.description}</Card.Description>
-                      {deck.price > 0 && (
-                        <div className="text-sm text-neutral-400">{`.000${deck.price} $ETH`}</div>
-                      )}
                     </Card.Header>
                   </Card>
                 </Link>
@@ -100,9 +97,9 @@ function HomePage() {
                   <Card.Header>
                     <Card.Title>{deck.name}</Card.Title>
                     <Card.Description>{deck.description}</Card.Description>
-                    <div className="text-sm text-neutral-400">
-                      {deck.price > 0 ? `.000${deck.price} $ETH` : 'Free'}
-                    </div>
+                    {deck.price > 0 && (
+                      <div className="text-sm text-neutral-400">{`.000${deck.price} $ETH`}</div>
+                    )}
                   </Card.Header>
                 </Card>
               </Link>

@@ -205,7 +205,7 @@ export function DeckPage() {
   });
 
   return (
-    <PageLayout fullWidth>
+    <PageLayout>
       <div className="space-y-1 pb-24">
         <PageHeader 
           backTo="/" 
@@ -241,7 +241,7 @@ export function DeckPage() {
         </div>
 
         <div className="fixed bottom-0 left-0 right-0 p-4">
-          <div className="container flex justify-center">
+          <div className="container max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             {isPaid && !isWalletConnected && (
               <button
                 onClick={connectWallet}

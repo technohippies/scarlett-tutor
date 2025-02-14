@@ -216,7 +216,7 @@ export function StudyPage() {
         </Card>
 
         <div className="fixed bottom-0 left-0 right-0 p-4">
-          <div className="container max-w-6xl mx-auto sm:px-6 lg:px-8">
+          <div className="container max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-center">
               {!isFlipped ? (
                 <button
