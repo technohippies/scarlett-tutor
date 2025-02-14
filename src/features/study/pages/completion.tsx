@@ -70,21 +70,23 @@ export function CompletionPage() {
           title="Study Complete!"
         />
 
-        <p className="text-md text-neutral-300">
-          Save your flashcard data to Ceramic for free! Ceramic is a web3 database that is reliable and secure.
-        </p>
+        <div className="space-y-2">
+          <p className="text-md text-neutral-300">
+            Save your flashcard data to Ceramic for free! Ceramic is a web3 database that is reliable and secure.
+          </p>
 
-        {error && (
-          <div className="rounded-md bg-destructive/15 p-4 mx-4">
-            <p className="text-sm text-destructive">{error}</p>
-          </div>
-        )}
+          {error && (
+            <div className="rounded-md bg-destructive/15 p-4">
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+          )}
 
-        {isSuccess && (
-          <div className="rounded-md bg-green-500/10 p-4 mx-4">
-            <p className="text-sm text-green-400">Progress saved successfully!</p>
-          </div>
-        )}
+          {isSuccess && (
+            <p className="text-md text-neutral-300">
+              Progress saved successfully!
+            </p>
+          )}
+        </div>
 
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/60 border-t border-neutral-1000">
           <div className="container max-w-6xl mx-auto sm:px-6 lg:px-8">

@@ -19,6 +19,7 @@ export interface Deck {
   description: string;
   creator: string;
   price: number;
+  priceInWei?: bigint;  // Optional since it's derived from price
   category: string;
   language: string;
   img_cid: string | null;

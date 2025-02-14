@@ -1,5 +1,8 @@
+import { type ReactNode } from 'react';
+import { DebugInfo } from '../../../shared/components/debug-info';
+
 interface PageLayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   fullWidth?: boolean;
 }
@@ -10,6 +13,7 @@ export function PageLayout({ children, className = '', fullWidth = false }: Page
       <div className={fullWidth ? 'w-full' : 'max-w-3xl mx-auto'}>
         {children}
       </div>
+      <DebugInfo />
     </div>
   );
 } 

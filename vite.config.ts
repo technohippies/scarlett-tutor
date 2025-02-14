@@ -119,14 +119,31 @@ export default defineConfig({
   ],
   server: {
     port: 3000,
-    open: true,
-    host: true,
     strictPort: true,
+    host: true,
     cors: true,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Service-Worker-Allowed': '/'
+    },
+    proxy: {
+      // Add any proxy configurations if needed
+    },
     hmr: {
       clientPort: 443,
       host: '0.0.0.0'
-    }
+    },
+    // Allow all ngrok domains
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      '.ngrok-free.app',
+      '.ngrok.io'
+    ]
   },
   build: {
     sourcemap: true,
