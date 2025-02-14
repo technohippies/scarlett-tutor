@@ -30,9 +30,8 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
   hasStudiedToday: false,
 
   fetchDecks: async () => {
-    const state = get();
     // Prevent multiple concurrent fetches
-    if (fetchInProgress || state.isLoading) {
+    if (fetchInProgress || get().isLoading) {
       return;
     }
 
@@ -43,7 +42,7 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
       const decks = await tableland.getAllDecks();
       
       // Only update if necessary
-      if (JSON.stringify(state.decks) !== JSON.stringify(decks)) {
+      if (JSON.stringify(get().decks) !== JSON.stringify(decks)) {
         set({ decks, isLoading: false });
       } else {
         set({ isLoading: false });
@@ -57,7 +56,6 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
   },
 
   selectDeck: async (deckId: number) => {
-    const state = get();
     try {
       set({ isLoading: true, error: null });
       

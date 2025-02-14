@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { StoreState } from '../types';
+import { StoreState } from '../../../shared/types';
 
 export interface UISlice {
   isDarkMode: boolean;
@@ -19,7 +19,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set) =>
   modalContent: null,
 
   toggleDarkMode: () => {
-    set((state) => {
+    set((state: StoreState) => {
       const isDarkMode = !state.isDarkMode;
       if (isDarkMode) {
         document.documentElement.classList.add('dark');
@@ -31,7 +31,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set) =>
   },
 
   toggleSidebar: () => {
-    set((state) => ({ isSidebarOpen: !state.isSidebarOpen }));
+    set((state: StoreState) => ({ isSidebarOpen: !state.isSidebarOpen }));
   },
 
   openModal: (content: React.ReactNode) => {
