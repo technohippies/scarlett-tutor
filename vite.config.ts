@@ -64,6 +64,8 @@ export default defineConfig({
         skipWaiting: true,
         sourcemap: true,
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB
+        navigateFallback: 'index.html',
+        navigateFallbackAllowlist: [/^(?!\/__).*/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -129,8 +131,8 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          wagmi: ['wagmi'],
-          tanstack: ['@tanstack/react-query']
+          wagmi: ['wagmi', '@wagmi/core'],
+          lit: ['@lit-protocol/lit-node-client', '@lit-protocol/auth-browser']
         }
       }
     }
