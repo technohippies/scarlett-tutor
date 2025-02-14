@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Deck } from '../../../shared/services/idb/schema';
 import { Card } from '../../../shared/components/card';
-import { StatsBadge } from '../../../shared/components/stats-badge';
 
 interface DeckCardProps {
   deck: Deck;

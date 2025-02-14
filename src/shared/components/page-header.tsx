@@ -11,8 +11,8 @@ interface PageHeaderProps {
 export function PageHeader({ backTo, title, className = '', rightContent }: PageHeaderProps) {
   return (
     <header className={`sticky top-0 z-10 bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/60 pb-6 ${className}`}>
-      <div className="h-14 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="h-14 flex items-center">
+        <div className="flex-none">
           <Link 
             to={backTo}
             className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:bg-neutral-800 h-9 w-9"
@@ -21,7 +21,7 @@ export function PageHeader({ backTo, title, className = '', rightContent }: Page
           </Link>
         </div>
         {rightContent && (
-          <div className="px-4">
+          <div className="flex-1 text-right">
             {rightContent}
           </div>
         )}

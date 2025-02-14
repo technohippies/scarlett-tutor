@@ -13,7 +13,7 @@ export function Card({ href, children, className = '' }: CardProps) {
   return (
     <Comp
       to={href || ''}
-      className={`group relative rounded-lg border p-6 hover:border-foreground/50 transition-colors ${className}`}
+      className={`group relative p-6 ${className}`}
     >
       {children}
     </Comp>
@@ -26,7 +26,7 @@ interface CardHeaderProps {
 }
 
 Card.Header = function CardHeader({ children, className = '' }: CardHeaderProps) {
-  return <div className={`flex flex-col space-y-1.5 ${className}`}>{children}</div>;
+  return <div className={`flex flex-col space-y-2 ${className}`}>{children}</div>;
 };
 
 Card.Title = function CardTitle({ children, className = '' }: CardHeaderProps) {
@@ -38,7 +38,7 @@ Card.Description = function CardDescription({ children, className = '' }: CardHe
 };
 
 Card.Content = function CardContent({ children, className = '' }: CardHeaderProps) {
-  return <div className={`pt-6 ${className}`}>{children}</div>;
+  return <div className={`${className}`}>{children}</div>;
 };
 
 Card.Footer = function CardFooter({ children, className = '' }: CardHeaderProps) {

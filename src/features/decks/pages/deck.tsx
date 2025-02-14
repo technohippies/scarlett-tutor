@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { useSelectedDeck, useDecksStatus, useDecksActions } from '../store/hooks';
 import { useWalletStatus, useWalletAddress, useAuthActions } from '../../auth/store/hooks';
-import { useStudyData } from '../../study/store/hooks';
 import { Loader } from '../../../shared/components/loader';
 import { readContract, writeContract, waitForTransactionReceipt } from '@wagmi/core';
 import { DECK_ACCESS_NFT_ABI, DECK_ACCESS_NFT_ADDRESS } from '../../../shared/constants';
@@ -36,7 +35,7 @@ function LastSynced({ timestamp }: { timestamp: number | undefined }) {
   }, [hasStudiedToday, timestamp]);
   
   return (
-    <div className="text-sm text-muted-foreground">
+    <div className="text-sm text-muted-foreground text-neutral-500">
       Last Saved: {text}
     </div>
   );
@@ -48,7 +47,6 @@ export function DeckPage() {
   const selectedDeck = useSelectedDeck();
   const { isLoading, error } = useDecksStatus();
   const { selectDeck } = useDecksActions();
-  const { cards } = useStudyData();
   const isWalletConnected = useWalletStatus();
   const address = useWalletAddress();
   const { connectWallet, checkWalletConnection } = useAuthActions();
@@ -208,7 +206,7 @@ export function DeckPage() {
 
   return (
     <PageLayout fullWidth>
-      <div className="space-y-8 pb-24">
+      <div className="space-y-1 pb-24">
         <PageHeader 
           backTo="/" 
           title={selectedDeck.name}
@@ -225,7 +223,7 @@ export function DeckPage() {
           <p className="text-lg text-muted-foreground">{selectedDeck.description}</p>
 
           {hasStats && (
-            <div className="grid grid-cols-3 gap-8">
+            <div className="grid grid-cols-3 gap-2">
               <div className="p-4 bg-neutral-800/50 rounded-lg">
                 <p className="text-sm text-neutral-500">New</p>
                 <p className="text-3xl font-bold mt-2">{selectedDeck.stats?.new || 0}</p>
@@ -242,7 +240,7 @@ export function DeckPage() {
           )}
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/60 border-t border-neutral-800">
+        <div className="fixed bottom-0 left-0 right-0 p-4">
           <div className="container flex justify-center">
             {isPaid && !isWalletConnected && (
               <button

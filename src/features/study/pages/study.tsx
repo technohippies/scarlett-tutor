@@ -4,9 +4,9 @@ import { useSelectedDeck, useDecksStatus, useDecksActions } from '../../decks/st
 import { useStudyData, useStudyStatus, useStudyActions } from '../store/hooks';
 import { Card } from '../../../shared/components/card';
 import { Loader } from '../../../shared/components/loader';
-import { Progress } from '../../../shared/components/progress';
 import { PageHeader } from '../../../shared/components/page-header';
 import { PageLayout } from '../../../features/ui/components/page-layout';
+import { Play } from "@phosphor-icons/react";
 
 export function StudyPage() {
   const { deckId } = useParams();
@@ -14,7 +14,7 @@ export function StudyPage() {
   const selectedDeck = useSelectedDeck();
   const { isLoading: isLoadingDeck } = useDecksStatus();
   const { selectDeck } = useDecksActions();
-  const { cards, currentCard, currentCardIndex } = useStudyData();
+  const { cards, currentCard } = useStudyData();
   const { isLoading: isLoadingStudy, isFlipped, isCompleted } = useStudyStatus();
   const { startStudySession, flipCard, answerCard } = useStudyActions();
   
@@ -164,48 +164,84 @@ export function StudyPage() {
     );
   }
 
-  // Calculate progress percentage
-  const progressPercentage = cards.length > 0 ? (currentCardIndex / cards.length) * 100 : 0;
-
   return (
     <PageLayout>
       <div className="space-y-6">
         <PageHeader backTo={`/decks/${selectedDeck?.id}`} />
-        <Progress value={progressPercentage} className="h-3" />
 
         <Card>
           <Card.Content>
-            <div className="min-h-[200px] flex items-center justify-center text-lg">
-              {isFlipped ? currentCard.back_text : currentCard.front_text}
+            <div className="relative">
+              <div className="inset-0 flex flex-col items-center justify-start text-lg">
+                <div className="flex flex-col items-center">
+                  {currentCard.front_image_cid && (
+                    <div className="mb-4 w-full max-w-[160px] rounded-md overflow-hidden bg-neutral-800">
+                      <img 
+                        src={`https://public.w3ipfs.storage/ipfs/${currentCard.front_image_cid}`}
+                        alt=""
+                        className="w-full h-36 object-cover rounded-md"
+                      />
+                    </div>
+                  )}
+                  <div className="text-center mt-8">{currentCard.front_text}</div>
+                  {currentCard.audio_tts_cid && (
+                    <div className="mt-4">
+                      <button 
+                        onClick={() => {
+                          const audio = new Audio(`https://public.w3ipfs.storage/ipfs/${currentCard.audio_tts_cid}`);
+                          audio.play();
+                        }}
+                        className="p-3 rounded-full bg-neutral-600 hover:bg-neutral-400 transition-colors"
+                      >
+                        <Play weight="fill" className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {isFlipped && (
+                  <div className="mt-8">
+                    <div className="text-center">
+                      {currentCard.back_text}
+                    </div>
+                    {currentCard.notes && (
+                      <div className="mt-4 text-md text-neutral-300 text-center max-w-md">
+                        {currentCard.notes}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </Card.Content>
         </Card>
 
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/60 border-t border-neutral-800">
-          <div className="container flex justify-center gap-4">
-            {!isFlipped ? (
-              <button
-                onClick={() => flipCard()}
-                className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-blue-500 text-white shadow-lg hover:bg-blue-600 active:bg-blue-700 h-12 px-4"
-              >
-                Flip
-              </button>
-            ) : (
-              <>
+        <div className="fixed bottom-0 left-0 right-0 p-4">
+          <div className="container max-w-6xl mx-auto sm:px-6 lg:px-8">
+            <div className="flex justify-center">
+              {!isFlipped ? (
                 <button
-                  onClick={() => answerCard('again')}
-                  className="w-[45%] inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 bg-neutral-600 text-white shadow-lg hover:bg-neutral-700 active:bg-neutral-800 h-12"
+                  onClick={() => flipCard()}
+                  className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-blue-500 text-white shadow-lg hover:bg-blue-600 active:bg-blue-700 h-12"
                 >
-                  Again
+                  Flip
                 </button>
-                <button
-                  onClick={() => answerCard('good')}
-                  className="w-[45%] inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-blue-500 text-white shadow-lg hover:bg-blue-600 active:bg-blue-700 h-12"
-                >
-                  Good
-                </button>
-              </>
-            )}
+              ) : (
+                <div className="w-full flex gap-4">
+                  <button
+                    onClick={() => answerCard('again')}
+                    className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 bg-neutral-600 text-white shadow-lg hover:bg-neutral-700 active:bg-neutral-800 h-12"
+                  >
+                    Again
+                  </button>
+                  <button
+                    onClick={() => answerCard('good')}
+                    className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-blue-500 text-white shadow-lg hover:bg-blue-600 active:bg-blue-700 h-12"
+                  >
+                    Good
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

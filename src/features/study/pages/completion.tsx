@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useStudyActions, useStudyStatus } from '../store/hooks';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useStudyActions } from '../store/hooks';
 import { useWalletStatus, useAuthActions, useAuthClients } from '../../auth/store/hooks';
 import { Loader } from '../../../shared/components/loader';
-import { Trophy } from '@phosphor-icons/react';
 import { PageHeader } from '../../../shared/components/page-header';
 import { PageLayout } from '../../../features/ui/components/page-layout';
 
@@ -65,13 +64,10 @@ export function CompletionPage() {
 
   return (
     <PageLayout>
-      <div className="space-y-8">
+      <div className="space-y-1">
         <PageHeader 
           backTo={`/decks/${deckId}`} 
           title="Study Complete!"
-          rightContent={
-            <Trophy className="w-8 h-8 text-yellow-500" weight="fill" />
-          }
         />
 
         <p className="text-md text-neutral-300">
@@ -90,7 +86,7 @@ export function CompletionPage() {
           </div>
         )}
 
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/60 border-t border-neutral-800">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/60 border-t border-neutral-1000">
           <div className="container max-w-6xl mx-auto sm:px-6 lg:px-8">
             <div className="flex justify-center">
               {!isWalletConnected ? (

@@ -3,9 +3,9 @@ import { useDecks, useDecksStatus, useDecksActions } from '../store/hooks';
 import { Card } from '../../../shared/components/card';
 import { Loader } from '../../../shared/components/loader';
 import { Link } from 'react-router-dom';
-import { StatsBadge } from '../../../shared/components/stats-badge';
 import type { Deck } from '../../../shared/types';
 import { getDeckFlashcards } from '../../../shared/services/idb';
+import { PageLayout } from '../../../features/ui/components/page-layout';
 
 function HomePage() {
   const decks = useDecks();
@@ -46,17 +46,21 @@ function HomePage() {
   // Show loading only on initial load
   if (isLoading && decks.length === 0 && !hasFetchedRef.current) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader />
-      </div>
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader />
+        </div>
+      </PageLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-destructive">{error}</p>
-      </div>
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <p className="text-destructive">{error}</p>
+        </div>
+      </PageLayout>
     );
   }
 
@@ -64,60 +68,49 @@ function HomePage() {
   const trendingDecks = decks.filter(deck => !userDecks.some(ud => ud.id === deck.id));
 
   return (
-    <div className="space-y-8">
+    <PageLayout>
+      <div className="space-y-8">
+        {userDecks.length > 0 && (
+          <section>
+            <h2 className="text-2xl font-bold tracking-tight mb-4">My Decks</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {userDecks.map((deck) => (
+                <Link key={deck.id} to={`/decks/${deck.id}`}>
+                  <Card className="h-full bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg">
+                    <Card.Header>
+                      <Card.Title>{deck.name}</Card.Title>
+                      <Card.Description>{deck.description}</Card.Description>
+                      {deck.price > 0 && (
+                        <div className="text-sm text-neutral-400">{`.000${deck.price} $ETH`}</div>
+                      )}
+                    </Card.Header>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
-      {userDecks.length > 0 && (
         <section>
-          <h2 className="text-2xl font-bold tracking-tight mb-4">My Decks</h2>
+          <h2 className="text-2xl font-bold tracking-tight mb-4">Trending</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {userDecks.map((deck) => (
+            {trendingDecks.map((deck) => (
               <Link key={deck.id} to={`/decks/${deck.id}`}>
-                <Card className="h-full hover:bg-accent transition-colors">
+                <Card className="h-full bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg">
                   <Card.Header>
                     <Card.Title>{deck.name}</Card.Title>
                     <Card.Description>{deck.description}</Card.Description>
-                  </Card.Header>
-                  <Card.Content>
-                    <div className="flex gap-2">
-                      <StatsBadge label="Category" value={deck.category} />
-                      <StatsBadge label="Language" value={deck.language} />
-                      {deck.price > 0 && (
-                        <StatsBadge label="Price" value={`${deck.price} ETH`} />
-                      )}
+                    <div className="text-sm text-neutral-400">
+                      {deck.price > 0 ? `.000${deck.price} $ETH` : 'Free'}
                     </div>
-                  </Card.Content>
+                  </Card.Header>
                 </Card>
               </Link>
             ))}
           </div>
         </section>
-      )}
-
-      <section>
-        <h2 className="text-2xl font-bold tracking-tight mb-4">Trending</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {trendingDecks.map((deck) => (
-            <Link key={deck.id} to={`/decks/${deck.id}`}>
-              <Card className="h-full hover:bg-accent transition-colors">
-                <Card.Header>
-                  <Card.Title>{deck.name}</Card.Title>
-                  <Card.Description>{deck.description}</Card.Description>
-                </Card.Header>
-                <Card.Content>
-                  <div className="flex gap-2">
-                    <StatsBadge label="Category" value={deck.category} />
-                    <StatsBadge label="Language" value={deck.language} />
-                    {deck.price > 0 && (
-                      <StatsBadge label="Price" value={`${deck.price} ETH`} />
-                    )}
-                  </div>
-                </Card.Content>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
-    </div>
+      </div>
+    </PageLayout>
   );
 }
 

@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import type { StudySlice, StoreState } from '../../../shared/types';
-import type { Flashcard, StudyProgress } from '../../../shared/services/idb/schema';
+import type { Flashcard } from '../../../shared/services/idb/schema';
 import { getTodayStudyLog, updateStudyLog, getDeckProgress, updateProgress } from '../../../shared/services/idb';
 import { fetchAndStoreFlashcards } from '../../../shared/services/flashcards';
 import { saveProgress } from '../../../shared/services/orbis';
@@ -95,8 +95,8 @@ export const createStudySlice: StateCreator<StoreState, [], [], StudySlice> = (s
         if (isStudyingAgain) {
           // When studying again, show all cards that were studied today
           cardsForStudy = flashcards
-            .filter(card => studiedToday.has(card.id))
-            .sort((a, b) => a.sort_order - b.sort_order);
+            .filter((card: Flashcard) => studiedToday.has(card.id))
+            .sort((a: Flashcard, b: Flashcard) => a.sort_order - b.sort_order);
 
           console.log('[startStudySession] Study again mode:', {
             deckId,
@@ -105,7 +105,7 @@ export const createStudySlice: StateCreator<StoreState, [], [], StudySlice> = (s
           });
         } else {
           // First time studying today - normal new/due card selection
-          const { newCards, dueCards } = flashcards.reduce((acc, card) => {
+          const { newCards, dueCards } = flashcards.reduce((acc: { newCards: Flashcard[]; dueCards: Flashcard[] }, card: Flashcard) => {
             if (studiedToday.has(card.id)) {
               console.log(`[startStudySession] Card ${card.id} already studied today`);
               return acc;
@@ -118,7 +118,7 @@ export const createStudySlice: StateCreator<StoreState, [], [], StudySlice> = (s
               acc.dueCards.push(card);
             }
             return acc;
-          }, { newCards: [] as Flashcard[], dueCards: [] as Flashcard[] });
+          }, { newCards: [], dueCards: [] });
 
           console.log('[startStudySession] Card distribution:', {
             deckId,
@@ -129,13 +129,13 @@ export const createStudySlice: StateCreator<StoreState, [], [], StudySlice> = (s
 
           // Take only up to new_cards_remaining from new cards
           const selectedNewCards = newCards
-            .sort((a, b) => a.sort_order - b.sort_order)
+            .sort((a: Flashcard, b: Flashcard) => a.sort_order - b.sort_order)
             .slice(0, todayLog.new_cards_remaining);
 
           // Combine with due cards
           cardsForStudy = [
             ...selectedNewCards,
-            ...dueCards.sort((a, b) => a.sort_order - b.sort_order)
+            ...dueCards.sort((a: Flashcard, b: Flashcard) => a.sort_order - b.sort_order)
           ];
         }
 
