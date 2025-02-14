@@ -10,11 +10,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      strategies: 'injectManifest',
-      injectRegister: null,
-      srcDir: 'src',
-      filename: 'sw.js',
-      manifestFilename: 'manifest.webmanifest',
+      registerType: 'autoUpdate',
+      injectRegister: 'inline',
       manifest: {
         name: 'Scarlett Tutor',
         short_name: 'Scarlett Tutor',
@@ -67,7 +64,6 @@ export default defineConfig({
         skipWaiting: true,
         sourcemap: true,
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB
-        swDest: 'sw.js',
         navigateFallback: 'index.html',
         navigateFallbackAllowlist: [/^(?!\/__).*/],
         runtimeCaching: [
@@ -133,10 +129,24 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          wagmi: ['wagmi', '@wagmi/core'],
-          lit: ['@lit-protocol/lit-node-client', '@lit-protocol/auth-browser']
+        manualChunks(id) {
+          // Create a chunk for each major dependency
+          if (id.includes('node_modules')) {
+            if (id.includes('@lit-protocol')) {
+              return 'lit'
+            }
+            if (id.includes('wagmi') || id.includes('@wagmi')) {
+              return 'wagmi'
+            }
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor'
+            }
+            if (id.includes('@tanstack')) {
+              return 'tanstack'
+            }
+            // Group other dependencies
+            return 'deps'
+          }
         }
       }
     }

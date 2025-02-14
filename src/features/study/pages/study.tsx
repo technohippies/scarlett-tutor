@@ -183,7 +183,7 @@ export function StudyPage() {
                       />
                     </div>
                   )}
-                  <div className="text-center mt-8">{currentCard.front_text}</div>
+                  <div className="text-center mt-8 text-lg">{currentCard.front_text}</div>
                   {currentCard.audio_tts_cid && (
                     <div className="mt-4">
                       <button 
