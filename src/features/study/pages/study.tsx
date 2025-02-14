@@ -3,10 +3,10 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useSelectedDeck, useDecksStatus, useDecksActions } from '../../decks/store/hooks';
 import { useStudyData, useStudyStatus, useStudyActions } from '../store/hooks';
 import { Card } from '../../../shared/components/card';
-import { Loader } from '../../../shared/components/loader';
 import { PageHeader } from '../../../shared/components/page-header';
 import { PageLayout } from '../../../features/ui/components/page-layout';
 import { Play } from "@phosphor-icons/react";
+import { RingLoader } from '../../../shared/components/ring-loader';
 
 export function StudyPage() {
   const { deckId } = useParams();
@@ -23,6 +23,7 @@ export function StudyPage() {
   const [isInitialized, setIsInitialized] = useState(false);
   const lastSelectedDeckId = useRef<number | null>(null);
   const shouldStartStudy = useRef(false);
+  const [isImageLoading, setIsImageLoading] = useState(true);
 
   // Effect to handle deck selection
   useEffect(() => {
@@ -104,21 +105,14 @@ export function StudyPage() {
     }
   }, [isCompleted, selectedDeck, navigate]);
 
-  // Show loading state while initializing
+  // First loader (page loading)
   if (isLoadingDeck || isLoadingStudy || isInitializing || (!isInitialized && !currentCard)) {
-    console.log('[StudyPage] Still loading:', {
-      isLoadingDeck,
-      isLoadingStudy,
-      isInitializing,
-      isInitialized,
-      hasCards: cards.length > 0,
-      currentCard: currentCard?.id,
-      timestamp: new Date().toISOString()
-    });
     return (
       <PageLayout>
         <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader className="w-8 h-8" />
+          <div className="flex items-center justify-center">
+            <RingLoader />
+          </div>
         </div>
       </PageLayout>
     );
@@ -175,15 +169,21 @@ export function StudyPage() {
               <div className="inset-0 flex flex-col items-center justify-start text-lg">
                 <div className="flex flex-col items-center">
                   {currentCard.front_image_cid && (
-                    <div className="mb-4 w-full max-w-[160px] rounded-md overflow-hidden bg-neutral-800">
+                    <div className="mb-4 w-full max-w-[160px] h-[160px] rounded-md overflow-hidden relative">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        {isImageLoading && <RingLoader />}
+                      </div>
                       <img 
                         src={`https://public.w3ipfs.storage/ipfs/${currentCard.front_image_cid}`}
                         alt=""
-                        className="w-full h-36 object-cover rounded-md"
+                        className={`w-full h-full object-contain transition-opacity duration-300 ${
+                          isImageLoading ? 'opacity-0' : 'opacity-100'
+                        }`}
+                        onLoad={() => setIsImageLoading(false)}
                       />
                     </div>
                   )}
-                  <div className="text-center mt-8 text-lg">{currentCard.front_text}</div>
+                  <div className="text-center mt-2 text-lg">{currentCard.front_text}</div>
                   {currentCard.audio_tts_cid && (
                     <div className="mt-4">
                       <button 

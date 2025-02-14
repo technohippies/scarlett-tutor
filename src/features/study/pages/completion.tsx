@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStudyActions } from '../store/hooks';
 import { useWalletStatus, useAuthActions, useAuthClients } from '../../auth/store/hooks';
-import { Loader } from '../../../shared/components/loader';
 import { PageHeader } from '../../../shared/components/page-header';
 import { PageLayout } from '../../../features/ui/components/page-layout';
+import { RingLoader } from '../../../shared/components/ring-loader';
 
 export function CompletionPage() {
   const { deckId } = useParams();
@@ -82,7 +82,7 @@ export function CompletionPage() {
           )}
 
           {isSuccess && (
-            <p className="text-md text-neutral-300">
+            <p className="text-md text-neutral-300 mt-10 font-bold">
               Progress saved successfully!
             </p>
           )}
@@ -106,7 +106,7 @@ export function CompletionPage() {
                 >
                   {isSaving ? (
                     <div className="flex items-center gap-3">
-                      <Loader className="w-5 h-5" />
+                      <RingLoader size="sm" />
                       <span>Connecting to Ceramic...</span>
                     </div>
                   ) : (
@@ -117,7 +117,7 @@ export function CompletionPage() {
                 <div className="w-full space-y-4">
                   {isSaving ? (
                     <div className="w-full flex items-center justify-center gap-3 h-12 text-neutral-400">
-                      <Loader className="w-5 h-5" />
+                      <RingLoader size="sm" />
                       <span>Saving progress...</span>
                     </div>
                   ) : isSuccess ? (

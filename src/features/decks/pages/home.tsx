@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDecks, useDecksStatus, useDecksActions } from '../store/hooks';
 import { Card } from '../../../shared/components/card';
-import { Loader } from '../../../shared/components/loader';
+import { RingLoader } from '../../../shared/components/ring-loader';
 import { Link } from 'react-router-dom';
 import type { Deck } from '../../../shared/types';
 import { getDeckFlashcards } from '../../../shared/services/idb';
@@ -48,7 +48,7 @@ function HomePage() {
     return (
       <PageLayout>
         <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader />
+          <RingLoader />
         </div>
       </PageLayout>
     );

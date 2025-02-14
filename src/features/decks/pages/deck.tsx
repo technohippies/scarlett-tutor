@@ -2,13 +2,13 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { useSelectedDeck, useDecksStatus, useDecksActions } from '../store/hooks';
 import { useWalletStatus, useWalletAddress, useAuthActions } from '../../auth/store/hooks';
-import { Loader } from '../../../shared/components/loader';
 import { readContract, writeContract, waitForTransactionReceipt } from '@wagmi/core';
 import { DECK_ACCESS_NFT_ABI, DECK_ACCESS_NFT_ADDRESS } from '../../../shared/constants';
 import { parseEther, getAddress } from 'viem';
 import { config } from '../../../shared/services/wagmi';
 import { PageHeader } from '../../../shared/components/page-header';
 import { PageLayout } from '../../../features/ui/components/page-layout';
+import { RingLoader } from '../../../shared/components/ring-loader';
 
 function formatLastSynced(timestamp: number | undefined): string {
   if (!timestamp) return 'Never';
@@ -160,7 +160,7 @@ export function DeckPage() {
     return (
       <PageLayout>
         <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader />
+          <RingLoader />
         </div>
       </PageLayout>
     );
@@ -259,7 +259,7 @@ export function DeckPage() {
               >
                 {isTransacting ? (
                   <div className="flex items-center gap-2">
-                    <Loader className="w-4 h-4" />
+                    <RingLoader size="sm" />
                     <span>{isConfirming ? 'Confirming...' : 'Purchasing...'}</span>
                   </div>
                 ) : (
