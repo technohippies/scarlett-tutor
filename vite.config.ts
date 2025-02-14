@@ -10,9 +10,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      strategies: 'generateSW',
-      registerType: 'prompt',
-      injectRegister: 'script',
+      strategies: 'injectManifest',
+      injectRegister: null,
+      srcDir: 'src',
+      filename: 'sw.js',
+      manifestFilename: 'manifest.webmanifest',
       manifest: {
         name: 'Scarlett Tutor',
         short_name: 'Scarlett Tutor',
@@ -65,6 +67,7 @@ export default defineConfig({
         skipWaiting: true,
         sourcemap: true,
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB
+        swDest: 'sw.js',
         navigateFallback: 'index.html',
         navigateFallbackAllowlist: [/^(?!\/__).*/],
         runtimeCaching: [
