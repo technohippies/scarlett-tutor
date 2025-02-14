@@ -10,15 +10,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: 'auto',
-      includeAssets: [
-        'favicon.ico',
-        'apple-touch-icon-180x180.png',
-        'pwa-192x192.png',
-        'pwa-512x512.png',
-        'maskable-icon-512x512.png'
-      ],
+      strategies: 'generateSW',
+      registerType: 'prompt',
+      injectRegister: 'script',
       manifest: {
         name: 'Scarlett Tutor',
         short_name: 'Scarlett Tutor',
@@ -53,6 +47,13 @@ export default defineConfig({
           }
         ]
       },
+      includeAssets: [
+        'favicon.ico',
+        'apple-touch-icon-180x180.png',
+        'pwa-192x192.png',
+        'pwa-512x512.png',
+        'maskable-icon-512x512.png'
+      ],
       devOptions: {
         enabled: true,
         type: 'module'
