@@ -1,10 +1,10 @@
-import { LitAuthClient } from '@lit-protocol/auth-browser';
+import { LitNodeClient } from '@lit-protocol/lit-node-client';
 import type { LIT_NETWORKS_KEYS } from '@lit-protocol/types';
 import { decryptToString } from '@lit-protocol/encryption';
 
 // Cache the Lit client instance and its connection promise
-let litNodeClient: LitAuthClient | null = null;
-let connectionPromise: Promise<LitAuthClient> | null = null;
+let litNodeClient: LitNodeClient | null = null;
+let connectionPromise: Promise<LitNodeClient> | null = null;
 let lastAuthSig: string | null = null;
 
 export async function getLitNodeClient() {
@@ -28,7 +28,7 @@ export async function getLitNodeClient() {
   
   // Create new client if we don't have one
   if (!litNodeClient) {
-    litNodeClient = new LitAuthClient(config);
+    litNodeClient = new LitNodeClient(config);
   }
 
   // Start connection and cache the promise
