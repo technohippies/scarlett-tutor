@@ -11,7 +11,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'inline',
+      injectRegister: 'auto',
+      strategies: 'generateSW',
+      minify: true,
       manifest: {
         name: 'Scarlett Tutor',
         short_name: 'Scarlett Tutor',
@@ -19,6 +21,7 @@ export default defineConfig({
         theme_color: '#171717',
         background_color: '#171717',
         display: 'standalone',
+        orientation: 'portrait',
         start_url: '/',
         scope: '/',
         icons: [
@@ -127,26 +130,17 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
+    chunkSizeWarningLimit: 3000,
+    target: 'esnext',
+    minify: 'esbuild',
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          // Create a chunk for each major dependency
-          if (id.includes('node_modules')) {
-            if (id.includes('@lit-protocol')) {
-              return 'lit'
-            }
-            if (id.includes('wagmi') || id.includes('@wagmi')) {
-              return 'wagmi'
-            }
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'vendor'
-            }
-            if (id.includes('@tanstack')) {
-              return 'tanstack'
-            }
-            // Group other dependencies
-            return 'deps'
-          }
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-wagmi': ['wagmi', '@wagmi/core', 'viem'],
+          'vendor-lit': ['@lit-protocol/lit-node-client', '@lit-protocol/auth-browser'],
+          'vendor-tanstack': ['@tanstack/react-query'],
+          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-slot', '@radix-ui/react-toast']
         }
       }
     }

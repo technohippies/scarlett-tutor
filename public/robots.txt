@@ -1,2 +1,3 @@
 User-agent: *
-Allow: / 
+Allow: /
+Sitemap: https://round-nest-squeaking.on-fleek.app/sitemap.xml 
