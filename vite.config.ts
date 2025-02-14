@@ -2,9 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/',
   plugins: [
     react(),
     tailwindcss(),
@@ -62,7 +64,7 @@ export default defineConfig({
         clientsClaim: true,
         skipWaiting: true,
         sourcemap: true,
-        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -111,6 +113,17 @@ export default defineConfig({
       }
     })
   ],
+  server: {
+    port: 3000,
+    open: true,
+    host: true,
+    strictPort: true,
+    cors: true,
+    hmr: {
+      clientPort: 443,
+      host: '0.0.0.0'
+    }
+  },
   build: {
     sourcemap: true
   }
