@@ -47,6 +47,13 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
         decks.length > 0 ? `: [${decks.map(d => `${d.id}:${d.name}`).join(', ')}]` : ''
       }`);
 
+      // Log initial stats if they exist
+      decks.forEach(deck => {
+        if (deck.stats) {
+          addDebugLog(`Initial deck ${deck.id} stats from IDB: new=${deck.stats.new}, review=${deck.stats.review}, due=${deck.stats.due}`);
+        }
+      });
+
       // If online, try to fetch from Tableland
       if (navigator.onLine) {
         try {
@@ -55,6 +62,13 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
           if (tablelandDecks.length > 0) {
             decks = tablelandDecks;
             addDebugLog(`Tableland fetch successful: ${tablelandDecks.length} decks`);
+            
+            // Log stats after Tableland fetch
+            decks.forEach(deck => {
+              if (deck.stats) {
+                addDebugLog(`Deck ${deck.id} stats after Tableland: new=${deck.stats.new}, review=${deck.stats.review}, due=${deck.stats.due}`);
+              }
+            });
           } else {
             addDebugLog('Tableland returned no decks', 'warning');
           }
@@ -66,22 +80,24 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
       }
       
       // Load stats for each deck
-      addDebugLog('Loading stats for decks...');
+      addDebugLog('Loading fresh stats for decks...');
       const decksWithStats = await Promise.all(decks.map(async (deck) => {
         const stats = await getDeckStats(deck.id);
-        addDebugLog(`Stats for deck ${deck.id} (${deck.name}): new=${stats?.new || 0}, review=${stats?.review || 0}, due=${stats?.due || 0}`);
+        addDebugLog(`Fresh stats for deck ${deck.id} (${deck.name}):
+• Previous: ${deck.stats ? `new=${deck.stats.new}, review=${deck.stats.review}, due=${deck.stats.due}` : 'none'}
+• Updated: new=${stats?.new || 0}, review=${stats?.review || 0}, due=${stats?.due || 0}`);
         return { ...deck, stats };
       }));
       
-      // Only update if necessary
-      const currentDecks = get().decks;
-      if (JSON.stringify(currentDecks) !== JSON.stringify(decksWithStats)) {
-        addDebugLog(`State update needed: current=${currentDecks.length} decks, new=${decksWithStats.length} decks`);
-        set({ decks: decksWithStats, isLoading: false });
-      } else {
-        addDebugLog('No state update needed - decks unchanged');
-        set({ isLoading: false });
-      }
+      // Always update with fresh stats
+      addDebugLog('Updating store with fresh stats...');
+      set({ decks: decksWithStats, isLoading: false });
+      
+      // Log final state
+      const finalState = get().decks;
+      finalState.forEach(deck => {
+        addDebugLog(`Final deck ${deck.id} state: new=${deck.stats?.new || 0}, review=${deck.stats?.review || 0}, due=${deck.stats?.due || 0}`);
+      });
     } catch (error) {
       addDebugLog(`Failed to fetch decks: ${error}`, 'error');
       set({ error: 'Failed to load decks', isLoading: false });

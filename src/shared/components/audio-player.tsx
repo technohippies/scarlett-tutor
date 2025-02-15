@@ -90,12 +90,13 @@ export function AudioPlayer({ src, size = 'md', className = '' }: AudioPlayerPro
         src={src}
         preload="auto"
       />
-      <button 
-        onClick={handleClick}
-        disabled={isLoading}
-        className={`rounded-full bg-neutral-600 hover:bg-neutral-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${sizeClasses[size]} ${className}`}
-      >
-        <div className="flex items-center justify-center">
+      <div className="inline-flex">
+        <button 
+          onClick={handleClick}
+          disabled={isLoading}
+          className={`rounded-full bg-neutral-600 hover:bg-neutral-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center ${sizeClasses[size]} ${className}`}
+          style={{ lineHeight: 0 }}
+        >
           {isLoading ? (
             <RingLoader size="sm" />
           ) : isPlaying ? (
@@ -103,8 +104,8 @@ export function AudioPlayer({ src, size = 'md', className = '' }: AudioPlayerPro
           ) : (
             <Play weight="fill" className={iconSizes[size]} />
           )}
-        </div>
-      </button>
+        </button>
+      </div>
     </>
   );
 } 

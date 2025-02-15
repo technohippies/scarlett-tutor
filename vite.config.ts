@@ -13,8 +13,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       manifest: {
-        name: 'Far Anki',
-        short_name: 'Far Anki',
+        name: 'Scarlett Tutor',
+        short_name: 'Scarlett Tutor',
         description: 'A spaced repetition flashcard app',
         theme_color: '#18181B',
         background_color: '#18181B',
