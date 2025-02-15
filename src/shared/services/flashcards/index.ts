@@ -3,7 +3,7 @@ import { SiweMessage } from 'siwe';
 import { BrowserProvider } from 'ethers';
 import { decryptWithLit } from '../lit';
 import type { Deck, Flashcard } from '../idb/schema';
-import { addFlashcards, getDeckFlashcards, getTodayStudyLog, updateStudyLog } from '../idb';
+import { addFlashcards, getDeckFlashcards, getTodayStudyLog, updateStudyLog, addDeck } from '../idb';
 import { readContract } from '@wagmi/core';
 import { DECK_ACCESS_NFT_ABI, DECK_ACCESS_NFT_ADDRESS } from '../../constants';
 import { getAddress } from 'viem';
@@ -302,7 +302,11 @@ export async function fetchAndStoreFlashcards(deck: Deck, address?: string) {
       });
       
       try {
-        await addFlashcards(deck.id, flashcards);
+        // Store both the deck and its flashcards
+        await Promise.all([
+          addDeck(deck),
+          addFlashcards(deck.id, flashcards)
+        ]);
       } catch (error: any) {
         if (error.name === 'ConstraintError') {
           console.log('[fetchAndStoreFlashcards] Cards already exist, using existing cards');
