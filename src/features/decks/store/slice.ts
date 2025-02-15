@@ -3,6 +3,7 @@ import type { StoreState } from '../../../shared/types';
 import type { Deck } from '../../../shared/services/idb/schema';
 import { TablelandClient } from '../../../shared/services/tableland';
 import { getTodayStudyLog, getDeckStats, getAllDecks as getDecksFromIDB } from '../../../shared/services/idb';
+import { addDebugLog } from '../../../shared/components/debug-info';
 
 export interface DecksSlice {
   decks: Deck[];
@@ -30,7 +31,6 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
   hasStudiedToday: false,
 
   fetchDecks: async () => {
-    // Prevent multiple concurrent fetches
     if (fetchInProgress || get().isLoading) {
       return;
     }
@@ -41,10 +41,7 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
       
       // First try to get decks from IDB
       let decks = await getDecksFromIDB();
-      console.log('[DecksSlice] Loaded decks from IDB:', {
-        count: decks.length,
-        decks
-      });
+      addDebugLog(`Loaded ${decks.length} decks from IDB`);
 
       // If online, try to fetch from Tableland and update IDB
       if (navigator.onLine) {
@@ -52,9 +49,10 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
           const tablelandDecks = await tableland.getAllDecks();
           if (tablelandDecks.length > 0) {
             decks = tablelandDecks;
+            addDebugLog(`Updated with ${tablelandDecks.length} decks from Tableland`);
           }
         } catch (error) {
-          console.warn('[DecksSlice] Failed to fetch from Tableland, using IDB data:', error);
+          addDebugLog('Failed to fetch from Tableland, using IDB data', 'warning');
         }
       }
       
@@ -67,11 +65,12 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
       // Only update if necessary
       if (JSON.stringify(get().decks) !== JSON.stringify(decksWithStats)) {
         set({ decks: decksWithStats, isLoading: false });
+        addDebugLog(`Updated decks state with ${decksWithStats.length} decks`);
       } else {
         set({ isLoading: false });
       }
     } catch (error) {
-      console.error('[DecksSlice] Failed to fetch decks:', error);
+      addDebugLog(`Failed to fetch decks: ${error}`, 'error');
       set({ error: 'Failed to load decks', isLoading: false });
     } finally {
       fetchInProgress = false;
@@ -82,26 +81,44 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
     try {
       set({ isLoading: true, error: null });
       
-      // Get deck data and stats in parallel
-      const [deck, stats] = await Promise.all([
-        tableland.getDeck(deckId),
-        getDeckStats(deckId)
-      ]);
+      // First try to get the deck from IDB
+      const decks = await getDecksFromIDB();
+      let deck: Deck | null = decks.find(d => d.id === deckId) ?? null;
       
+      if (deck) {
+        addDebugLog(`Found deck ${deckId} in IDB`);
+      }
+      
+      // If not in IDB and online, try Tableland
+      if (!deck && navigator.onLine) {
+        try {
+          deck = await tableland.getDeck(deckId);
+          if (deck) {
+            addDebugLog(`Retrieved deck ${deckId} from Tableland`);
+          }
+        } catch (error) {
+          addDebugLog(`Failed to fetch deck ${deckId} from Tableland`, 'warning');
+        }
+      }
+
       if (!deck) {
         throw new Error('Deck not found');
       }
 
-      // Check if deck has been studied today
-      const todayLog = await getTodayStudyLog(deckId);
+      // Get stats and study log in parallel
+      const [stats, todayLog] = await Promise.all([
+        getDeckStats(deckId),
+        getTodayStudyLog(deckId)
+      ]);
+
       const hasStudiedToday = todayLog ? todayLog.cards_studied.length > 0 : false;
 
-      console.log('[DecksSlice] Updating deck:', {
-        deckId,
-        stats,
-        hasStudiedToday,
-        timestamp: new Date().toISOString()
-      });
+      addDebugLog(`Deck ${deckId} stats: ${JSON.stringify({
+        new: stats?.new || 0,
+        review: stats?.review || 0,
+        due: stats?.due || 0,
+        hasStudiedToday
+      })}`);
 
       set({ 
         selectedDeck: { ...deck, stats }, 
@@ -109,7 +126,7 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
         hasStudiedToday
       });
     } catch (error) {
-      console.error('Failed to select deck:', error);
+      addDebugLog(`Failed to select deck ${deckId}: ${error}`, 'error');
       set({ error: 'Failed to select deck', isLoading: false });
     }
   },
