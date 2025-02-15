@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDecks, useDecksStatus, useDecksActions } from '../store/hooks';
-import { Card } from '../../../shared/components/card';
 import { RingLoader } from '../../../shared/components/ring-loader';
 import { Link } from 'react-router-dom';
 import type { Deck } from '../../../shared/types';
