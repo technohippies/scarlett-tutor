@@ -2,7 +2,7 @@ import { StateCreator } from 'zustand';
 import type { StoreState } from '../../../shared/types';
 import type { Deck } from '../../../shared/services/idb/schema';
 import { TablelandClient } from '../../../shared/services/tableland';
-import { getTodayStudyLog, getDeckStats } from '../../../shared/services/idb';
+import { getTodayStudyLog, getDeckStats, getAllDecks as getDecksFromIDB } from '../../../shared/services/idb';
 
 export interface DecksSlice {
   decks: Deck[];
@@ -39,17 +39,40 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
       fetchInProgress = true;
       set({ isLoading: true, error: null });
       
-      const decks = await tableland.getAllDecks();
+      // First try to get decks from IDB
+      let decks = await getDecksFromIDB();
+      console.log('[DecksSlice] Loaded decks from IDB:', {
+        count: decks.length,
+        decks
+      });
+
+      // If online, try to fetch from Tableland and update IDB
+      if (navigator.onLine) {
+        try {
+          const tablelandDecks = await tableland.getAllDecks();
+          if (tablelandDecks.length > 0) {
+            decks = tablelandDecks;
+          }
+        } catch (error) {
+          console.warn('[DecksSlice] Failed to fetch from Tableland, using IDB data:', error);
+        }
+      }
+      
+      // Load stats for each deck
+      const decksWithStats = await Promise.all(decks.map(async (deck) => {
+        const stats = await getDeckStats(deck.id);
+        return { ...deck, stats };
+      }));
       
       // Only update if necessary
-      if (JSON.stringify(get().decks) !== JSON.stringify(decks)) {
-        set({ decks, isLoading: false });
+      if (JSON.stringify(get().decks) !== JSON.stringify(decksWithStats)) {
+        set({ decks: decksWithStats, isLoading: false });
       } else {
         set({ isLoading: false });
       }
     } catch (error) {
       console.error('[DecksSlice] Failed to fetch decks:', error);
-      set({ error: 'Failed to fetch decks', isLoading: false });
+      set({ error: 'Failed to load decks', isLoading: false });
     } finally {
       fetchInProgress = false;
     }

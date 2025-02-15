@@ -74,16 +74,30 @@ function HomePage() {
           <section>
             <h2 className="text-2xl font-bold tracking-tight mb-4">My Decks</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {userDecks.map((deck) => (
-                <Link key={deck.id} to={`/decks/${deck.id}`}>
-                  <Card className="h-full bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg">
-                    <Card.Header>
-                      <Card.Title>{deck.name}</Card.Title>
-                      <Card.Description>{deck.description}</Card.Description>
-                    </Card.Header>
-                  </Card>
-                </Link>
-              ))}
+              {userDecks.map((deck) => {
+                console.log('[HomePage] Deck stats:', {
+                  deckId: deck.id,
+                  deckName: deck.name,
+                  stats: deck.stats,
+                  hasStats: !!deck.stats
+                });
+                return (
+                  <Link key={deck.id} to={`/decks/${deck.id}`} data-discover="true">
+                    <div className="group relative p-6 h-full bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg">
+                      <div className="flex flex-row items-center justify-between">
+                        <h3 className="font-semibold leading-none tracking-tight">{deck.name}</h3>
+                        {deck.stats && (
+                          <div className="flex gap-3 text-sm">
+                            <span>{deck.stats.new || 0}</span>
+                            <span>{deck.stats.review || 0}</span>
+                            <span className="text-red-500">{deck.stats.due || 0}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </section>
         )}
@@ -92,16 +106,16 @@ function HomePage() {
           <h2 className="text-2xl font-bold tracking-tight mb-4">Trending</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {trendingDecks.map((deck) => (
-              <Link key={deck.id} to={`/decks/${deck.id}`}>
-                <Card className="h-full bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg">
-                  <Card.Header>
-                    <Card.Title>{deck.name}</Card.Title>
-                    <Card.Description>{deck.description}</Card.Description>
+              <Link key={deck.id} to={`/decks/${deck.id}`} data-discover="true">
+                <div className="group relative p-6 h-full bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg">
+                  <div className="flex flex-col space-y-2">
+                    <h3 className="font-semibold leading-none tracking-tight">{deck.name}</h3>
+                    <p className="text-sm text-muted-foreground">{deck.description}</p>
                     {deck.price > 0 && (
                       <div className="text-sm text-neutral-400">{`.000${deck.price} $ETH`}</div>
                     )}
-                  </Card.Header>
-                </Card>
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
