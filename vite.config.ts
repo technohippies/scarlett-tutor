@@ -44,6 +44,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/ceramic-orbisdb-mainnet-direct\.hirenodes\.io\/.*/i,
@@ -128,7 +129,7 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
-    chunkSizeWarningLimit: 3000,
+    chunkSizeWarningLimit: 8000, // Increase warning limit to 8MB
     target: 'esnext',
     minify: 'esbuild',
     rollupOptions: {
@@ -136,7 +137,8 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-wagmi': ['wagmi', '@wagmi/core', 'viem'],
-          'vendor-lit': ['@lit-protocol/lit-node-client', '@lit-protocol/auth-browser'],
+          'vendor-lit-core': ['@lit-protocol/lit-node-client'],
+          'vendor-lit-auth': ['@lit-protocol/auth-browser'],
           'vendor-tanstack': ['@tanstack/react-query'],
           'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-slot', '@radix-ui/react-toast']
         }
