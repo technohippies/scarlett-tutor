@@ -15,11 +15,15 @@ function formatLastSynced(timestamp: number | undefined): string {
 
   const now = new Date();
   const lastSynced = new Date(timestamp);
-  const diffInDays = Math.floor((now.getTime() - lastSynced.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffInDays === 0) {
+  
+  // Check if the timestamp is from today
+  const isToday = lastSynced.toDateString() === now.toDateString();
+  if (isToday) {
     return 'Today';
-  } else if (diffInDays === 1) {
+  }
+  
+  const diffInDays = Math.floor((now.getTime() - lastSynced.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffInDays === 1) {
     return 'Yesterday';
   } else {
     return `${diffInDays} days ago`;
@@ -27,12 +31,10 @@ function formatLastSynced(timestamp: number | undefined): string {
 }
 
 function LastSynced({ timestamp }: { timestamp: number | undefined }) {
-  const { hasStudiedToday } = useDecksStatus();
-  
   // Memoize the text to prevent unnecessary re-renders
   const text = useMemo(() => {
-    return hasStudiedToday ? 'Today' : formatLastSynced(timestamp);
-  }, [hasStudiedToday, timestamp]);
+    return formatLastSynced(timestamp);
+  }, [timestamp]);
   
   return (
     <div className="text-sm text-muted-foreground text-neutral-500">
@@ -61,12 +63,10 @@ export function DeckPage() {
     if (!deckId) return;
     
     const numericDeckId = Number(deckId);
-    if (selectedDeck?.id !== numericDeckId) {
-      await selectDeck(numericDeckId);
-    }
-  }, [deckId, selectDeck, selectedDeck?.id]);
+    await selectDeck(numericDeckId);
+  }, [deckId, selectDeck]);
 
-  // Single effect to handle all deck refreshes
+  // Effect to refresh deck data on mount and after study
   useEffect(() => {
     let isActive = true;
 
@@ -83,12 +83,22 @@ export function DeckPage() {
       void handleRefresh();
     };
 
+    // Handle navigation back to this page
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void handleRefresh();
+      }
+    };
+
     window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       isActive = false;
       window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [refreshDeck, location.key]); // Only re-run on navigation or when refresh function changes
+  }, [refreshDeck, location.key]); // Re-run on navigation
 
   // Check wallet connection on mount
   useEffect(() => {

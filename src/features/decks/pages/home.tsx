@@ -12,6 +12,22 @@ function HomePage() {
   const { fetchDecks } = useDecksActions();
   const hasFetchedRef = useRef(false);
   const [userDecks, setUserDecks] = useState<Deck[]>([]);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Track online status
+  useEffect(() => {
+    function updateOnlineStatus() {
+      setIsOnline(navigator.onLine);
+    }
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, []);
 
   useEffect(() => {
     if (!hasFetchedRef.current && !isLoading && decks.length === 0) {
@@ -101,24 +117,26 @@ function HomePage() {
           </section>
         )}
 
-        <section>
-          <h2 className="text-2xl font-bold tracking-tight mb-4">Trending</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {trendingDecks.map((deck) => (
-              <Link key={deck.id} to={`/decks/${deck.id}`} data-discover="true">
-                <div className="group relative p-6 h-full bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg">
-                  <div className="flex flex-col space-y-2">
-                    <h3 className="font-semibold leading-none tracking-tight">{deck.name}</h3>
-                    <p className="text-sm text-muted-foreground">{deck.description}</p>
-                    {deck.price > 0 && (
-                      <div className="text-sm text-neutral-400">{`.000${deck.price} $ETH`}</div>
-                    )}
+        {isOnline && (
+          <section>
+            <h2 className="text-2xl font-bold tracking-tight mb-4">Trending</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {trendingDecks.map((deck) => (
+                <Link key={deck.id} to={`/decks/${deck.id}`} data-discover="true">
+                  <div className="group relative p-6 h-full bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg">
+                    <div className="flex flex-col space-y-2">
+                      <h3 className="font-semibold leading-none tracking-tight">{deck.name}</h3>
+                      <p className="text-sm text-muted-foreground">{deck.description}</p>
+                      {deck.price > 0 && (
+                        <div className="text-sm text-neutral-400">{`.000${deck.price} $ETH`}</div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </PageLayout>
   );

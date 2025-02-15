@@ -183,7 +183,7 @@ export function StudyPage() {
                       />
                     </div>
                   )}
-                  <div className="text-center mt-2 text-lg">{currentCard.front_text}</div>
+                  <div className="text-center mt-2 text-xl sm:text-2xl font-medium">{currentCard.front_text}</div>
                   {currentCard.audio_tts_cid && (
                     <div className="mt-4">
                       <button 
@@ -200,11 +200,11 @@ export function StudyPage() {
                 </div>
                 {isFlipped && (
                   <div className="mt-8">
-                    <div className="text-center">
+                    <div className="text-center text-xl sm:text-2xl font-medium">
                       {currentCard.back_text}
                     </div>
                     {currentCard.notes && (
-                      <div className="mt-4 text-md text-neutral-300 text-center">
+                      <div className="mt-4 text-lg text-neutral-300 text-center">
                         {currentCard.notes}
                       </div>
                     )}

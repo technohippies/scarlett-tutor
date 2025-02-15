@@ -110,7 +110,7 @@ export function CompletionPage() {
                       <span>Connecting to Ceramic...</span>
                     </div>
                   ) : (
-                    'Connect to Ceramic'
+                    'Save to Ceramic'
                   )}
                 </button>
               ) : (
