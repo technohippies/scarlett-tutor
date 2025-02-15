@@ -5,8 +5,8 @@ import { useStudyData, useStudyStatus, useStudyActions } from '../store/hooks';
 import { Card } from '../../../shared/components/card';
 import { PageHeader } from '../../../shared/components/page-header';
 import { PageLayout } from '../../../features/ui/components/page-layout';
-import { Play } from "@phosphor-icons/react";
 import { RingLoader } from '../../../shared/components/ring-loader';
+import { AudioPlayer } from '../../../shared/components/audio-player';
 
 export function StudyPage() {
   const { deckId } = useParams();
@@ -186,15 +186,9 @@ export function StudyPage() {
                   <div className="text-center mt-2 text-xl sm:text-2xl font-medium">{currentCard.front_text}</div>
                   {currentCard.audio_tts_cid && (
                     <div className="mt-4">
-                      <button 
-                        onClick={() => {
-                          const audio = new Audio(`https://public.w3ipfs.storage/ipfs/${currentCard.audio_tts_cid}`);
-                          audio.play();
-                        }}
-                        className="p-3 rounded-full bg-neutral-600 hover:bg-neutral-400 transition-colors"
-                      >
-                        <Play weight="fill" className="w-5 h-5" />
-                      </button>
+                      <AudioPlayer 
+                        src={`https://public.w3ipfs.storage/ipfs/${currentCard.audio_tts_cid}`}
+                      />
                     </div>
                   )}
                 </div>
