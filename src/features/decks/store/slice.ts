@@ -21,7 +21,8 @@ export interface DecksSlice {
 
 const tableland = TablelandClient.getInstance();
 
-let fetchInProgress = false;
+// Track ongoing fetches to prevent duplicates
+const ongoingFetches = new Map<string, Promise<void>>();
 
 export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (set, get) => ({
   decks: [],
@@ -31,79 +32,90 @@ export const createDecksSlice: StateCreator<StoreState, [], [], DecksSlice> = (s
   hasStudiedToday: false,
 
   fetchDecks: async () => {
-    if (fetchInProgress || get().isLoading) {
-      addDebugLog('Fetch already in progress, skipping', 'warning');
-      return;
+    const fetchKey = 'all_decks';
+    const existingFetch = ongoingFetches.get(fetchKey);
+    if (existingFetch) {
+      addDebugLog('Using existing fetch for all decks');
+      return existingFetch;
     }
 
-    try {
-      fetchInProgress = true;
-      set({ isLoading: true, error: null });
-      
-      // First try to get decks from IDB
-      addDebugLog('Attempting to load decks from IDB...');
-      let decks = await getDecksFromIDB();
-      addDebugLog(`IDB Load Result: ${decks.length} decks found${
-        decks.length > 0 ? `: [${decks.map(d => `${d.id}:${d.name}`).join(', ')}]` : ''
-      }`);
+    const fetchPromise = (async () => {
+      try {
+        set({ isLoading: true, error: null });
+        
+        // First try to get decks from IDB
+        addDebugLog('Attempting to load decks from IDB...');
+        let decks = await getDecksFromIDB();
+        addDebugLog(`IDB Load Result: ${decks.length} decks found${
+          decks.length > 0 ? `: [${decks.map(d => `${d.id}:${d.name}`).join(', ')}]` : ''
+        }`);
 
-      // Log initial stats if they exist
-      decks.forEach(deck => {
-        if (deck.stats) {
-          addDebugLog(`Initial deck ${deck.id} stats from IDB: new=${deck.stats.new}, review=${deck.stats.review}, due=${deck.stats.due}`);
-        }
-      });
-
-      // If online, try to fetch from Tableland
-      if (navigator.onLine) {
-        try {
-          addDebugLog('Online - fetching from Tableland...');
-          const tablelandDecks = await tableland.getAllDecks();
-          if (tablelandDecks.length > 0) {
-            decks = tablelandDecks;
-            addDebugLog(`Tableland fetch successful: ${tablelandDecks.length} decks`);
-            
-            // Log stats after Tableland fetch
-            decks.forEach(deck => {
-              if (deck.stats) {
-                addDebugLog(`Deck ${deck.id} stats after Tableland: new=${deck.stats.new}, review=${deck.stats.review}, due=${deck.stats.due}`);
-              }
-            });
-          } else {
-            addDebugLog('Tableland returned no decks', 'warning');
+        // Log initial stats if they exist
+        decks.forEach(deck => {
+          if (deck.stats) {
+            addDebugLog(`Initial deck ${deck.id} stats from IDB: new=${deck.stats.new}, review=${deck.stats.review}, due=${deck.stats.due}`);
           }
-        } catch (error) {
-          addDebugLog(`Tableland fetch failed: ${error}`, 'warning');
+        });
+
+        // If online, try to fetch from Tableland
+        if (navigator.onLine) {
+          try {
+            addDebugLog('Online - fetching from Tableland...');
+            const tablelandDecks = await tableland.getAllDecks();
+            if (tablelandDecks.length > 0) {
+              decks = tablelandDecks;
+              addDebugLog(`Tableland fetch successful: ${tablelandDecks.length} decks`);
+              
+              // Log stats after Tableland fetch
+              decks.forEach(deck => {
+                if (deck.stats) {
+                  addDebugLog(`Deck ${deck.id} stats after Tableland: new=${deck.stats.new}, review=${deck.stats.review}, due=${deck.stats.due}`);
+                }
+              });
+            } else {
+              addDebugLog('Tableland returned no decks', 'warning');
+            }
+          } catch (error) {
+            addDebugLog(`Tableland fetch failed: ${error}`, 'warning');
+          }
+        } else {
+          addDebugLog('Offline - skipping Tableland fetch');
         }
-      } else {
-        addDebugLog('Offline - skipping Tableland fetch');
-      }
-      
-      // Load stats for each deck
-      addDebugLog('Loading fresh stats for decks...');
-      const decksWithStats = await Promise.all(decks.map(async (deck) => {
-        const stats = await getDeckStats(deck.id);
-        addDebugLog(`Fresh stats for deck ${deck.id} (${deck.name}):
+        
+        // Load stats for each deck
+        addDebugLog('Loading fresh stats for decks...');
+        const decksWithStats = await Promise.all(decks.map(async (deck) => {
+          const stats = await getDeckStats(deck.id);
+          addDebugLog(`Fresh stats for deck ${deck.id} (${deck.name}):
 • Previous: ${deck.stats ? `new=${deck.stats.new}, review=${deck.stats.review}, due=${deck.stats.due}` : 'none'}
 • Updated: new=${stats?.new || 0}, review=${stats?.review || 0}, due=${stats?.due || 0}`);
-        return { ...deck, stats };
-      }));
-      
-      // Always update with fresh stats
-      addDebugLog('Updating store with fresh stats...');
-      set({ decks: decksWithStats, isLoading: false });
-      
-      // Log final state
-      const finalState = get().decks;
-      finalState.forEach(deck => {
-        addDebugLog(`Final deck ${deck.id} state: new=${deck.stats?.new || 0}, review=${deck.stats?.review || 0}, due=${deck.stats?.due || 0}`);
-      });
-    } catch (error) {
-      addDebugLog(`Failed to fetch decks: ${error}`, 'error');
-      set({ error: 'Failed to load decks', isLoading: false });
-    } finally {
-      fetchInProgress = false;
-    }
+          return { ...deck, stats };
+        }));
+        
+        // Always update with fresh stats
+        addDebugLog('Updating store with fresh stats...');
+        set({ decks: decksWithStats, isLoading: false });
+        
+        // Log final state
+        const finalState = get().decks;
+        finalState.forEach(deck => {
+          addDebugLog(`Final deck ${deck.id} state: new=${deck.stats?.new || 0}, review=${deck.stats?.review || 0}, due=${deck.stats?.due || 0}`);
+        });
+      } catch (error) {
+        addDebugLog(`Failed to fetch decks: ${error}`, 'error');
+        set({ error: 'Failed to load decks', isLoading: false });
+      }
+    })();
+
+    // Store the promise
+    ongoingFetches.set(fetchKey, fetchPromise);
+
+    // Clean up after fetch completes
+    fetchPromise.finally(() => {
+      ongoingFetches.delete(fetchKey);
+    });
+
+    return fetchPromise;
   },
 
   selectDeck: async (deckId: number) => {

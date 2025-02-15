@@ -50,6 +50,9 @@ function HomePage() {
       void handleRefresh();
     }
 
+    // Always refresh when returning to this page
+    void handleRefresh();
+
     // Handle window focus
     const handleFocus = () => {
       void handleRefresh();
