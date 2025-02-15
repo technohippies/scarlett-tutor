@@ -273,7 +273,7 @@ export function DeckPage() {
                     <span>{isConfirming ? 'Confirming...' : 'Purchasing...'}</span>
                   </div>
                 ) : (
-                  `Purchase for ${selectedDeck.price} ETH`
+                  `Purchase for .000${selectedDeck.price} ETH`
                 )}
               </button>
             )}

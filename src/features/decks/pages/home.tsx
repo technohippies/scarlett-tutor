@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useDecks, useDecksStatus, useDecksActions } from '../store/hooks';
 import { RingLoader } from '../../../shared/components/ring-loader';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { Deck } from '../../../shared/types';
 import { getDeckFlashcards } from '../../../shared/services/idb';
 import { PageLayout } from '../../../features/ui/components/page-layout';
@@ -13,6 +13,12 @@ function HomePage() {
   const hasFetchedRef = useRef(false);
   const [userDecks, setUserDecks] = useState<Deck[]>([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const location = useLocation();
+
+  // Memoize the refresh function to prevent unnecessary re-renders
+  const refreshDecks = useCallback(async () => {
+    await fetchDecks();
+  }, [fetchDecks]);
 
   // Track online status
   useEffect(() => {
@@ -29,12 +35,42 @@ function HomePage() {
     };
   }, []);
 
+  // Effect to refresh decks data on mount and after study
   useEffect(() => {
+    let isActive = true;
+
+    async function handleRefresh() {
+      if (!isActive) return;
+      await refreshDecks();
+    }
+
+    // Initial load
     if (!hasFetchedRef.current && !isLoading && decks.length === 0) {
       hasFetchedRef.current = true;
-      void fetchDecks();
+      void handleRefresh();
     }
-  }, [isLoading, decks.length]);
+
+    // Handle window focus
+    const handleFocus = () => {
+      void handleRefresh();
+    };
+
+    // Handle navigation back to this page
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void handleRefresh();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isActive = false;
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshDecks, location.key]); // Re-run on navigation
 
   // Check which decks are in IDB
   useEffect(() => {
