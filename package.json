@@ -22,6 +22,8 @@
     "@radix-ui/react-toast": "^1.2.6",
     "@reown/appkit": "^1.6.8",
     "@reown/appkit-adapter-wagmi": "^1.6.8",
+    "@reown/appkit-ui": "^1.6.8",
+    "@reown/appkit-wallet": "^1.6.8",
     "@tailwindcss/vite": "^4.0.6",
     "@useorbis/db-sdk": "^0.0.60-alpha",
     "@wagmi/connectors": "^5.7.7",

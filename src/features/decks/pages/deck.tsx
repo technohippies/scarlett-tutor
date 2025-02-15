@@ -247,7 +247,7 @@ export function DeckPage() {
                 onClick={connectWallet}
                 className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-blue-500 text-white shadow-lg hover:bg-blue-600 active:bg-blue-700 h-12"
               >
-                Connect Wallet to Purchase
+                Connect Wallet
               </button>
             )}
 

@@ -4,9 +4,8 @@ import { OrbisDB } from '@useorbis/db-sdk';
 import { OrbisEVMAuth } from '@useorbis/db-sdk/auth';
 import type { IEVMProvider } from '@useorbis/db-sdk';
 import type { AuthSlice, StoreState } from '../../../shared/types';
-import { connect, getAccount } from '@wagmi/core';
-import { injected } from 'wagmi/connectors';
-import { config } from '../../../shared/services/wagmi';
+import { getAccount, watchAccount } from '@wagmi/core';
+import { config, appKit } from '../../../shared/services/wagmi';
 import { db } from '../../../shared/services/orbis';
 
 export const createAuthSlice: StateCreator<StoreState, [], [], AuthSlice> = (set) => ({
@@ -48,15 +47,47 @@ export const createAuthSlice: StateCreator<StoreState, [], [], AuthSlice> = (set
 
   connectWallet: async () => {
     try {
-      console.log('Attempting to connect wallet...');
-      const result = await connect(config, {
-        connector: injected(),
+      console.log('[connectWallet] Attempting to connect wallet...');
+      
+      // Set up account watcher before opening modal
+      const unwatch = watchAccount(config, {
+        onChange(account) {
+          console.log('[connectWallet] Account changed:', account);
+          if (account.isConnected && account.address) {
+            console.log('[connectWallet] Successfully connected:', account.address);
+            set({ isWalletConnected: true, address: account.address });
+          } else {
+            console.log('[connectWallet] Disconnected');
+            set({ isWalletConnected: false, address: null });
+          }
+        },
       });
-      console.log('Wallet connected successfully:', result);
-      set({ isWalletConnected: true, address: result.accounts[0] });
+
+      // Open AppKit modal and wait for interaction
+      console.log('[connectWallet] Opening AppKit modal...');
+      await appKit.open({ view: 'Connect' });
+      
+      // Wait for potential connection (give it some time for the modal interaction)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Final check after modal interaction
+      const account = getAccount(config);
+      console.log('[connectWallet] Final account check:', account);
+      
+      if (account.isConnected && account.address) {
+        console.log('[connectWallet] Connection confirmed:', account.address);
+        set({ isWalletConnected: true, address: account.address });
+      }
+
+      // Clean up the watcher after a delay
+      setTimeout(() => {
+        unwatch();
+      }, 2000);
+
     } catch (error) {
-      console.error('Failed to connect wallet:', error);
+      console.error('[connectWallet] Failed to connect wallet:', error);
       set({ isWalletConnected: false, address: null });
+      throw error;
     }
   },
 

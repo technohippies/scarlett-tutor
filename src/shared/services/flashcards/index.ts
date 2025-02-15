@@ -1,12 +1,12 @@
+import { config } from '../wagmi';
+import { SiweMessage } from 'siwe';
+import { BrowserProvider } from 'ethers';
+import { decryptWithLit } from '../lit';
 import type { Deck, Flashcard } from '../idb/schema';
 import { addFlashcards, getDeckFlashcards, getTodayStudyLog, updateStudyLog } from '../idb';
 import { readContract } from '@wagmi/core';
 import { DECK_ACCESS_NFT_ABI, DECK_ACCESS_NFT_ADDRESS } from '../../constants';
 import { getAddress } from 'viem';
-import { config } from '../wagmi';
-import { SiweMessage } from 'siwe';
-import { BrowserProvider } from 'ethers';
-import { decryptWithLit } from '../lit';
 
 interface FlashcardsResponse {
   flashcards: Omit<Flashcard, 'id'>[];
@@ -175,7 +175,12 @@ export async function fetchAndStoreFlashcards(deck: Deck, address?: string) {
         });
 
         const messageToSign = siweMessage.prepareMessage();
-        const provider = new BrowserProvider(window.ethereum);
+        if (!window.ethereum) {
+          throw new Error('No Ethereum provider found');
+        }
+        
+        // Cast to any first to avoid TypeScript errors with the ethereum provider
+        const provider = new BrowserProvider(window.ethereum as any);
         const signer = await provider.getSigner();
         const signature = await signer.signMessage(messageToSign);
 

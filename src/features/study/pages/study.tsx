@@ -204,7 +204,7 @@ export function StudyPage() {
                       {currentCard.back_text}
                     </div>
                     {currentCard.notes && (
-                      <div className="mt-4 text-md text-neutral-300 text-center max-w-md">
+                      <div className="mt-4 text-md text-neutral-300 text-center">
                         {currentCard.notes}
                       </div>
                     )}
