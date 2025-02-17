@@ -91,7 +91,7 @@ export async function fetchAndStoreFlashcards(deck: Deck, address?: string) {
 
       // Fetch flashcards from IPFS
       console.log('[fetchAndStoreFlashcards] Fetching from IPFS:', deck.flashcards_cid);
-      const response = await fetch(`https://public.w3ipfs.storage/ipfs/${deck.flashcards_cid}`);
+      const response = await fetch(`https://premium.w3ipfs.storage/ipfs/${deck.flashcards_cid}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch flashcards from IPFS: ${response.statusText}`);
       }

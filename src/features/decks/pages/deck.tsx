@@ -4,7 +4,7 @@ import { useSelectedDeck, useDecksStatus, useDecksActions } from '../store/hooks
 import { useWalletStatus, useWalletAddress, useAuthActions } from '../../auth/store/hooks';
 import { readContract, writeContract, waitForTransactionReceipt } from '@wagmi/core';
 import { DECK_ACCESS_NFT_ABI, DECK_ACCESS_NFT_ADDRESS } from '../../../shared/constants';
-import { parseEther, getAddress } from 'viem';
+import { getAddress } from 'viem';
 import { config } from '../../../shared/services/wagmi';
 import { PageHeader } from '../../../shared/components/page-header';
 import { PageLayout } from '../../../features/ui/components/page-layout';
@@ -135,14 +135,15 @@ export function DeckPage() {
   }, [isWalletConnected, address, deckId]);
 
   const handlePurchase = async () => {
-    if (deckId && isWalletConnected && address) {
+    if (deckId && isWalletConnected && address && selectedDeck?.priceInWei) {
       try {
         setIsPurchasing(true);
         setContractError(null);
         console.log('Initiating purchase for:', {
           address,
           deckId,
-          price: selectedDeck?.price,
+          price: selectedDeck.price,
+          priceInWei: selectedDeck.priceInWei,
           contractAddress: DECK_ACCESS_NFT_ADDRESS
         });
         const hash = await writeContract(config, {
@@ -150,7 +151,7 @@ export function DeckPage() {
           abi: DECK_ACCESS_NFT_ABI,
           functionName: 'purchaseDeck',
           args: [BigInt(deckId)],
-          value: selectedDeck?.price ? parseEther(selectedDeck.price.toString()) : 0n,
+          value: BigInt(selectedDeck.priceInWei),
         });
         console.log('Purchase transaction submitted:', hash);
         setIsConfirming(true);
@@ -263,7 +264,7 @@ export function DeckPage() {
         </div>
 
         <div className="fixed bottom-0 left-0 right-0 p-4">
-          <div className="container max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="container max-w-3xl mx-auto sm:px-6 lg:px-8">
             {isPaid && !isWalletConnected && (
               <button
                 onClick={connectWallet}

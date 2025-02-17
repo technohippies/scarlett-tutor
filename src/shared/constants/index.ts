@@ -49,5 +49,5 @@ export const STUDY_CONSTANTS = {
 
 // API Constants
 export const API_CONSTANTS = {
-  IPFS_GATEWAY: 'https://public.w3ipfs.storage/ipfs',
+  IPFS_GATEWAY: 'https://premium.w3ipfs.storage/ipfs',
 } as const; 

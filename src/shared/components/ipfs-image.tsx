@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RingLoader } from './ring-loader';
 import { Dialog, DialogContent, DialogTrigger } from './dialog';
 import { cn } from '../utils';
@@ -24,7 +24,11 @@ export function IPFSImage({
 }: IPFSImageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const imageUrl = `https://public.w3ipfs.storage/ipfs/${cid}`;
+  const [currentGateway, setCurrentGateway] = useState<'public' | 'premium'>('public');
+  
+  const imageUrl = currentGateway === 'public' 
+    ? `https://premium.w3ipfs.storage/ipfs/${cid}`
+    : `https://premium.w3ipfs.storage/ipfs/${cid}`;
 
   const aspectRatioClass = {
     square: 'aspect-square',
@@ -40,9 +44,21 @@ export function IPFSImage({
 
   const handleError = () => {
     console.error('Image failed to load:', imageUrl);
-    setIsLoading(false);
-    setHasError(true);
+    // If public gateway fails, try premium
+    if (currentGateway === 'public') {
+      console.log('Trying premium gateway...');
+      setCurrentGateway('premium');
+    } else {
+      setIsLoading(false);
+      setHasError(true);
+    }
   };
+
+  // Reset loading state when switching gateways
+  useEffect(() => {
+    setIsLoading(true);
+    setHasError(false);
+  }, [currentGateway]);
 
   const ImageComponent = (
     <div 

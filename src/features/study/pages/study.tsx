@@ -7,6 +7,7 @@ import { PageHeader } from '../../../shared/components/page-header';
 import { PageLayout } from '../../../features/ui/components/page-layout';
 import { RingLoader } from '../../../shared/components/ring-loader';
 import { AudioPlayer } from '../../../shared/components/audio-player';
+import { IPFSImage } from '../../../shared/components/ipfs-image';
 
 export function StudyPage() {
   const { deckId } = useParams();
@@ -23,7 +24,6 @@ export function StudyPage() {
   const [isInitialized, setIsInitialized] = useState(false);
   const lastSelectedDeckId = useRef<number | null>(null);
   const shouldStartStudy = useRef(false);
-  const [isImageLoading, setIsImageLoading] = useState(true);
 
   // Effect to handle deck selection
   useEffect(() => {
@@ -169,17 +169,12 @@ export function StudyPage() {
               <div className="inset-0 flex flex-col items-center justify-start text-lg">
                 <div className="flex flex-col items-center">
                   {currentCard.front_image_cid && (
-                    <div className="mb-4 w-full max-w-[160px] h-[160px] rounded-md overflow-hidden relative">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        {isImageLoading && <RingLoader />}
-                      </div>
-                      <img 
-                        src={`https://public.w3ipfs.storage/ipfs/${currentCard.front_image_cid}`}
+                    <div className="mb-4 w-full max-w-[160px] h-[160px]">
+                      <IPFSImage 
+                        cid={currentCard.front_image_cid}
                         alt=""
-                        className={`w-full h-full object-contain transition-opacity duration-300 ${
-                          isImageLoading ? 'opacity-0' : 'opacity-100'
-                        }`}
-                        onLoad={() => setIsImageLoading(false)}
+                        aspectRatio="square"
+                        containerClassName="h-full"
                       />
                     </div>
                   )}
@@ -187,7 +182,7 @@ export function StudyPage() {
                   {currentCard.audio_tts_cid && (
                     <div className="mt-4">
                       <AudioPlayer 
-                        src={`https://public.w3ipfs.storage/ipfs/${currentCard.audio_tts_cid}`}
+                        src={`https://premium.w3ipfs.storage/ipfs/${currentCard.audio_tts_cid}`}
                       />
                     </div>
                   )}
@@ -210,7 +205,7 @@ export function StudyPage() {
         </Card>
 
         <div className="fixed bottom-0 left-0 right-0 p-4">
-          <div className="container max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="container max-w-3xl mx-auto sm:px-6 lg:px-8">
             <div className="flex justify-center">
               {!isFlipped ? (
                 <button
