@@ -10,7 +10,7 @@ export async function initDB() {
   if (dbInstance) return dbInstance;
 
   dbInstance = await openDB<AnkiDB>(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion, newVersion) {
+    upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         // Create original stores
         const deckStore = db.createObjectStore('decks', { keyPath: 'id' });
