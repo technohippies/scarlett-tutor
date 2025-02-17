@@ -9,6 +9,7 @@ import { config } from '../../../shared/services/wagmi';
 import { PageHeader } from '../../../shared/components/page-header';
 import { PageLayout } from '../../../features/ui/components/page-layout';
 import { RingLoader } from '../../../shared/components/ring-loader';
+import { IPFSImage } from '../../../shared/components/ipfs-image';
 
 function formatLastSynced(timestamp: number | undefined): string {
   if (!timestamp) return 'Never';
@@ -230,6 +231,17 @@ export function DeckPage() {
         )}
 
         <div className="space-y-8">
+          {selectedDeck.img_cid && (
+            <div className="max-w-2xl mx-auto">
+              <IPFSImage 
+                cid={selectedDeck.img_cid} 
+                alt={selectedDeck.name}
+                aspectRatio="video"
+                enableDialog
+              />
+            </div>
+          )}
+
           <p className="text-lg text-muted-foreground">{selectedDeck.description}</p>
 
           {hasStats && (

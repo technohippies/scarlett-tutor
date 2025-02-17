@@ -5,6 +5,41 @@ import { Link, useLocation } from 'react-router-dom';
 import type { Deck } from '../../../shared/types';
 import { getDeckFlashcards } from '../../../shared/services/idb';
 import { PageLayout } from '../../../features/ui/components/page-layout';
+import { IPFSImage } from '../../../shared/components/ipfs-image';
+
+function DeckCard({ deck, showStats = false }: { deck: Deck; showStats?: boolean }) {
+  return (
+    <Link key={deck.id} to={`/decks/${deck.id}`} data-discover="true">
+      <div className="group relative overflow-hidden rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-colors">
+        {deck.img_cid && (
+          <IPFSImage 
+            cid={deck.img_cid} 
+            alt={deck.name}
+            aspectRatio="video"
+          />
+        )}
+        <div className="p-6">
+          <div className="flex flex-row items-center justify-between">
+            <h3 className="font-semibold leading-none tracking-tight">{deck.name}</h3>
+            {showStats && deck.stats && (
+              <div className="flex gap-3 text-sm">
+                <span>{deck.stats.new || 0}</span>
+                <span>{deck.stats.review || 0}</span>
+                <span className="text-red-500">{deck.stats.due || 0}</span>
+              </div>
+            )}
+          </div>
+          {!showStats && (
+            <p className="text-sm text-muted-foreground mt-2">{deck.description}</p>
+          )}
+          {deck.price > 0 && (
+            <div className="text-sm text-neutral-400 mt-2">{`.000${deck.price} $ETH`}</div>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
 
 function HomePage() {
   const decks = useDecks();
@@ -128,30 +163,9 @@ function HomePage() {
           <section>
             <h2 className="text-2xl font-bold tracking-tight mb-4">My Decks</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {userDecks.map((deck) => {
-                console.log('[HomePage] Deck stats:', {
-                  deckId: deck.id,
-                  deckName: deck.name,
-                  stats: deck.stats,
-                  hasStats: !!deck.stats
-                });
-                return (
-                  <Link key={deck.id} to={`/decks/${deck.id}`} data-discover="true">
-                    <div className="group relative p-6 h-full bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg">
-                      <div className="flex flex-row items-center justify-between">
-                        <h3 className="font-semibold leading-none tracking-tight">{deck.name}</h3>
-                        {deck.stats && (
-                          <div className="flex gap-3 text-sm">
-                            <span>{deck.stats.new || 0}</span>
-                            <span>{deck.stats.review || 0}</span>
-                            <span className="text-red-500">{deck.stats.due || 0}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+              {userDecks.map((deck) => (
+                <DeckCard key={deck.id} deck={deck} showStats={true} />
+              ))}
             </div>
           </section>
         )}
@@ -161,17 +175,7 @@ function HomePage() {
             <h2 className="text-2xl font-bold tracking-tight mb-4">Trending</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {trendingDecks.map((deck) => (
-                <Link key={deck.id} to={`/decks/${deck.id}`} data-discover="true">
-                  <div className="group relative p-6 h-full bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg">
-                    <div className="flex flex-col space-y-2">
-                      <h3 className="font-semibold leading-none tracking-tight">{deck.name}</h3>
-                      <p className="text-sm text-muted-foreground">{deck.description}</p>
-                      {deck.price > 0 && (
-                        <div className="text-sm text-neutral-400">{`.000${deck.price} $ETH`}</div>
-                      )}
-                    </div>
-                  </div>
-                </Link>
+                <DeckCard key={deck.id} deck={deck} />
               ))}
             </div>
           </section>

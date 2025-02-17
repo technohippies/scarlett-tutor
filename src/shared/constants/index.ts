@@ -6,10 +6,6 @@ export const CONTRACT_ADDRESSES = {
   testnet: {
     DECK_ACCESS_NFT: '0xA26277f442eD2E41E70E4a06E3849807D972e4C3' as Address,
   },
-  // Local development addresses
-  local: {
-    DECK_ACCESS_NFT: '0x5FbDB2315678afecb367f032d93F642f64180aa3' as Address,
-  }
 } as const;
 
 // Use testnet addresses by default
