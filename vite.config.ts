@@ -15,7 +15,7 @@ export default defineConfig({
       manifest: {
         name: 'Scarlett Tutor',
         short_name: 'Scarlett Tutor',
-        description: 'A spaced repetition flashcard app',
+        description: 'AI + Anki on Web3 with',
         theme_color: '#18181B',
         background_color: '#18181B',
         display: 'standalone',
@@ -74,6 +74,20 @@ export default defineConfig({
                 statuses: [0, 200]
               },
               networkTimeoutSeconds: 10
+            }
+          },
+          {
+            urlPattern: /^https:\/\/.*\.w3ipfs\.storage\/ipfs\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'ipfs-media-cache',
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
             }
           }
         ]

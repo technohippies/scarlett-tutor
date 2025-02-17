@@ -54,6 +54,12 @@ export interface DailyStudyLog {
   new_cards_remaining: number;
 }
 
+export interface MediaCache {
+  cid: string;
+  data: Blob;
+  timestamp: number;
+}
+
 export interface AnkiDB extends DBSchema {
   decks: {
     key: number;
@@ -83,6 +89,13 @@ export interface AnkiDB extends DBSchema {
     value: DailyStudyLog;
     indexes: {
       'by-date': string;
+    };
+  };
+  media_cache: {
+    key: string; // cid
+    value: MediaCache;
+    indexes: {
+      'by-timestamp': number;
     };
   };
 }

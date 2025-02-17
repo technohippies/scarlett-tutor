@@ -1,8 +1,8 @@
 import { openDB, IDBPDatabase } from 'idb';
-import { AnkiDB, Deck, Flashcard, StudyProgress, DailyStudyLog } from './schema';
+import { AnkiDB, Deck, Flashcard, StudyProgress, DailyStudyLog, MediaCache } from './schema';
 
 const DB_NAME = 'far-anki';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance: IDBPDatabase<AnkiDB> | null = null;
 
@@ -10,24 +10,29 @@ export async function initDB() {
   if (dbInstance) return dbInstance;
 
   dbInstance = await openDB<AnkiDB>(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      // Create decks store
-      const deckStore = db.createObjectStore('decks', { keyPath: 'id' });
-      deckStore.createIndex('by-name', 'name');
-      deckStore.createIndex('by-category', 'category');
+    upgrade(db, oldVersion, newVersion) {
+      if (oldVersion < 1) {
+        // Create original stores
+        const deckStore = db.createObjectStore('decks', { keyPath: 'id' });
+        deckStore.createIndex('by-name', 'name');
+        deckStore.createIndex('by-category', 'category');
 
-      // Create flashcards store
-      const flashcardStore = db.createObjectStore('flashcards', { keyPath: 'id' });
-      flashcardStore.createIndex('by-deck', 'deck_id');
+        const flashcardStore = db.createObjectStore('flashcards', { keyPath: 'id' });
+        flashcardStore.createIndex('by-deck', 'deck_id');
 
-      // Create progress store
-      const progressStore = db.createObjectStore('progress', { keyPath: ['deck_id', 'flashcard_id'] });
-      progressStore.createIndex('by-deck', 'deck_id');
-      progressStore.createIndex('by-next-review', 'next_review');
+        const progressStore = db.createObjectStore('progress', { keyPath: ['deck_id', 'flashcard_id'] });
+        progressStore.createIndex('by-deck', 'deck_id');
+        progressStore.createIndex('by-next-review', 'next_review');
 
-      // Create study log store
-      const studyLogStore = db.createObjectStore('study_log', { keyPath: ['date', 'deck_id'] });
-      studyLogStore.createIndex('by-date', 'date');
+        const studyLogStore = db.createObjectStore('study_log', { keyPath: ['date', 'deck_id'] });
+        studyLogStore.createIndex('by-date', 'date');
+      }
+
+      if (oldVersion < 2) {
+        // Create media cache store
+        const mediaCacheStore = db.createObjectStore('media_cache', { keyPath: 'cid' });
+        mediaCacheStore.createIndex('by-timestamp', 'timestamp');
+      }
     },
   });
 
@@ -166,4 +171,51 @@ export async function getDeckStats(deckId: number) {
   });
 
   return stats;
+}
+
+// Media cache operations
+export async function getCachedMedia(cid: string): Promise<Blob | null> {
+  const db = await initDB();
+  const cache = await db.get('media_cache', cid);
+  return cache?.data || null;
+}
+
+export async function cacheMedia(cid: string, data: Blob): Promise<void> {
+  const db = await initDB();
+  const cache: MediaCache = {
+    cid,
+    data,
+    timestamp: Date.now(),
+  };
+  await db.put('media_cache', cache);
+}
+
+// Clean old cache entries (keep last 100MB or 24h, whichever comes first)
+export async function cleanMediaCache(): Promise<void> {
+  const db = await initDB();
+  const MAX_CACHE_SIZE = 100 * 1024 * 1024; // 100MB
+  const MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
+  
+  const tx = db.transaction('media_cache', 'readwrite');
+  const store = tx.objectStore('media_cache');
+  const index = store.index('by-timestamp');
+  
+  let totalSize = 0;
+  const now = Date.now();
+  
+  // Get all entries ordered by timestamp
+  for await (const cursor of index.iterate(null, 'prev')) {
+    const entry = cursor.value;
+    const age = now - entry.timestamp;
+    const size = entry.data.size;
+    
+    // Remove if too old or if cache is too large
+    if (age > MAX_AGE || totalSize + size > MAX_CACHE_SIZE) {
+      await cursor.delete();
+    } else {
+      totalSize += size;
+    }
+  }
+  
+  await tx.done;
 }

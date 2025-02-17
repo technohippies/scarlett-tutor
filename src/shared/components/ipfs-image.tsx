@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { RingLoader } from './ring-loader';
 import { Dialog, DialogContent, DialogTrigger } from './dialog';
 import { cn } from '../utils';
+import { mediaPreloader } from '../services/media-preloader';
 
 interface IPFSImageProps {
   cid: string;
@@ -22,43 +23,61 @@ export function IPFSImage({
   onClick,
   enableDialog = false
 }: IPFSImageProps) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [currentGateway, setCurrentGateway] = useState<'public' | 'premium'>('public');
-  
-  const imageUrl = currentGateway === 'public' 
-    ? `https://premium.w3ipfs.storage/ipfs/${cid}`
-    : `https://premium.w3ipfs.storage/ipfs/${cid}`;
+  const [loadProgress, setLoadProgress] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    let objectUrl: string | null = null;
+
+    const loadImage = async () => {
+      if (!cid) return;
+      
+      try {
+        setIsLoading(true);
+        setHasError(false);
+        setLoadProgress(0);
+
+        const blob = await mediaPreloader.preloadMedia(cid, {
+          onProgress: (progress) => {
+            if (mounted) setLoadProgress(progress);
+          },
+          onError: () => {
+            if (mounted) setHasError(true);
+          }
+        });
+
+        if (!mounted) return;
+
+        objectUrl = URL.createObjectURL(blob);
+        setImageUrl(objectUrl);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to load image:', error);
+        if (mounted) {
+          setHasError(true);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadImage();
+
+    return () => {
+      mounted = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [cid]);
 
   const aspectRatioClass = {
     square: 'aspect-square',
     video: 'aspect-video',
     auto: ''
   }[aspectRatio];
-
-  const handleLoad = () => {
-    console.log('Image loaded:', imageUrl);
-    setIsLoading(false);
-    setHasError(false);
-  };
-
-  const handleError = () => {
-    console.error('Image failed to load:', imageUrl);
-    // If public gateway fails, try premium
-    if (currentGateway === 'public') {
-      console.log('Trying premium gateway...');
-      setCurrentGateway('premium');
-    } else {
-      setIsLoading(false);
-      setHasError(true);
-    }
-  };
-
-  // Reset loading state when switching gateways
-  useEffect(() => {
-    setIsLoading(true);
-    setHasError(false);
-  }, [currentGateway]);
 
   const ImageComponent = (
     <div 
@@ -70,26 +89,38 @@ export function IPFSImage({
       onClick={onClick}
     >
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <RingLoader size="sm" />
+        <div className="absolute inset-0 flex items-center justify-center bg-neutral-900">
+          <div className="text-center">
+            <RingLoader />
+            {loadProgress > 0 && (
+              <div className="mt-2 text-sm text-neutral-400">
+                {Math.round(loadProgress * 100)}%
+              </div>
+            )}
+          </div>
         </div>
       )}
+      
       {hasError && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 text-sm text-neutral-400">
-          Failed to load image
+        <div className="absolute inset-0 flex items-center justify-center bg-neutral-900">
+          <div className="text-center text-neutral-400">
+            Failed to load image
+          </div>
         </div>
       )}
-      <img 
-        src={imageUrl}
-        alt={alt}
-        className={cn(
-          "w-full h-full object-cover transition-opacity duration-300",
-          isLoading || hasError ? 'opacity-0' : 'opacity-100',
-          className
-        )}
-        onLoad={handleLoad}
-        onError={handleError}
-      />
+
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt={alt}
+          className={cn(
+            "w-full h-full object-contain",
+            isLoading ? 'opacity-0' : 'opacity-100',
+            'transition-opacity duration-200',
+            className
+          )}
+        />
+      )}
     </div>
   );
 
@@ -100,15 +131,20 @@ export function IPFSImage({
           {ImageComponent}
         </DialogTrigger>
         <DialogContent className="max-w-3xl p-0 overflow-hidden">
-          <img 
-            src={imageUrl}
-            alt={alt}
-            className={cn(
-              "w-full h-full object-contain",
-              hasError ? 'hidden' : 'block'
-            )}
-            onError={handleError}
-          />
+          {imageUrl && (
+            <img 
+              src={imageUrl}
+              alt={alt}
+              className={cn(
+                "w-full h-full object-contain",
+                hasError ? 'hidden' : 'block',
+                className
+              )}
+              onError={() => {
+                setHasError(true);
+              }}
+            />
+          )}
           {hasError && (
             <div className="p-8 text-center text-neutral-400">
               Failed to load image

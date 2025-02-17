@@ -8,6 +8,7 @@ import { PageLayout } from '../../../features/ui/components/page-layout';
 import { RingLoader } from '../../../shared/components/ring-loader';
 import { AudioPlayer } from '../../../shared/components/audio-player';
 import { IPFSImage } from '../../../shared/components/ipfs-image';
+import { mediaPreloader } from '../../../shared/services/media-preloader';
 
 export function StudyPage() {
   const { deckId } = useParams();
@@ -85,7 +86,7 @@ export function StudyPage() {
     void startStudy();
   }, [selectedDeck, isInitializing, isInitialized, startStudySession]);
 
-  // Effect to track card loading
+  // Effect to track card loading and preload next card's media
   useEffect(() => {
     if (cards.length > 0 && currentCard && isInitializing) {
       console.log('[StudyPage] Cards loaded:', {
@@ -95,6 +96,31 @@ export function StudyPage() {
       });
       setIsInitialized(true);
       setIsInitializing(false);
+    }
+
+    // Preload next card's media
+    if (cards.length > 0 && currentCard) {
+      const currentIndex = cards.findIndex(card => card.id === currentCard.id);
+      const nextCard = cards[currentIndex + 1];
+      
+      if (nextCard) {
+        const mediaToPreload: string[] = [];
+        
+        if (nextCard.front_image_cid) {
+          mediaToPreload.push(nextCard.front_image_cid);
+        }
+        if (nextCard.audio_tts_cid) {
+          mediaToPreload.push(nextCard.audio_tts_cid);
+        }
+        
+        if (mediaToPreload.length > 0) {
+          console.log('[StudyPage] Preloading media for next card:', {
+            nextCardId: nextCard.id,
+            mediaCount: mediaToPreload.length
+          });
+          mediaPreloader.queuePreload(mediaToPreload);
+        }
+      }
     }
   }, [cards, currentCard, isInitializing]);
 
@@ -182,6 +208,7 @@ export function StudyPage() {
                   {currentCard.audio_tts_cid && (
                     <div className="mt-4">
                       <AudioPlayer 
+                        cid={currentCard.audio_tts_cid}
                         src={`https://premium.w3ipfs.storage/ipfs/${currentCard.audio_tts_cid}`}
                       />
                     </div>

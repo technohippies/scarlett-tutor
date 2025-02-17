@@ -1,23 +1,60 @@
 import { useEffect, useRef, useState } from 'react';
 import { Play, Pause } from "@phosphor-icons/react";
 import { RingLoader } from './ring-loader';
+import { mediaPreloader } from '../services/media-preloader';
 
 interface AudioPlayerProps {
   src: string;
+  cid?: string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
-export function AudioPlayer({ src, size = 'md', className = '' }: AudioPlayerProps) {
+export function AudioPlayer({ src, cid, size = 'md', className = '' }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
-  // Reset state when src changes
+  // Load audio when cid changes
   useEffect(() => {
-    setIsLoading(true);
-    setIsPlaying(false);
-  }, [src]);
+    let mounted = true;
+    let objectUrl: string | null = null;
+
+    const loadAudio = async () => {
+      if (!cid) {
+        // If no CID provided, use direct URL
+        setAudioUrl(src);
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+
+        const blob = await mediaPreloader.preloadMedia(cid);
+        if (!mounted) return;
+
+        objectUrl = URL.createObjectURL(blob);
+        setAudioUrl(objectUrl);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to load audio:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadAudio();
+
+    return () => {
+      mounted = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [cid, src]);
 
   // Handle audio events
   useEffect(() => {
@@ -61,7 +98,7 @@ export function AudioPlayer({ src, size = 'md', className = '' }: AudioPlayerPro
             audio.pause();
           }
         });
-        
+
         await audioRef.current.play();
       } catch (error) {
         console.error('Failed to play audio:', error);
@@ -70,42 +107,32 @@ export function AudioPlayer({ src, size = 'md', className = '' }: AudioPlayerPro
     }
   };
 
-  // Size classes
-  const sizeClasses = {
-    sm: 'w-8 h-8',
-    md: 'w-10 h-10',
-    lg: 'w-12 h-12'
-  };
-
   const iconSizes = {
-    sm: 'w-4 h-4',
-    md: 'w-5 h-5',
-    lg: 'w-6 h-6'
+    sm: 'h-4 w-4',
+    md: 'h-5 w-5',
+    lg: 'h-6 w-6'
   };
 
   return (
-    <>
+    <div className={`inline-flex items-center gap-2 ${className}`}>
       <audio 
         ref={audioRef}
-        src={src}
+        src={audioUrl || src}
         preload="auto"
       />
-      <div className="inline-flex">
-        <button 
-          onClick={handleClick}
-          disabled={isLoading}
-          className={`rounded-full bg-neutral-600 hover:bg-neutral-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center ${sizeClasses[size]} ${className}`}
-          style={{ lineHeight: 0 }}
-        >
-          {isLoading ? (
-            <RingLoader size="sm" />
-          ) : isPlaying ? (
-            <Pause weight="fill" className={iconSizes[size]} />
-          ) : (
-            <Play weight="fill" className={iconSizes[size]} />
-          )}
-        </button>
-      </div>
-    </>
+      <button
+        onClick={handleClick}
+        disabled={isLoading}
+        className="inline-flex items-center justify-center rounded-full w-8 h-8 bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isLoading ? (
+          <RingLoader size="sm" />
+        ) : isPlaying ? (
+          <Pause weight="fill" className={iconSizes[size]} />
+        ) : (
+          <Play weight="fill" className={iconSizes[size]} />
+        )}
+      </button>
+    </div>
   );
 } 
