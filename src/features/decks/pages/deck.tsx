@@ -233,11 +233,12 @@ export function DeckPage() {
 
         <div className="space-y-8">
           {selectedDeck.img_cid && (
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-2xl mx-auto bg-white rounded-lg overflow-hidden">
               <IPFSImage 
                 cid={selectedDeck.img_cid} 
                 alt={selectedDeck.name}
                 aspectRatio="video"
+                containerClassName="bg-white"
                 enableDialog
               />
             </div>

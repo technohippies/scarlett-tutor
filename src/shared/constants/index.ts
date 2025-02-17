@@ -2,9 +2,9 @@ import { Address } from 'viem';
 
 // Contract Addresses
 export const CONTRACT_ADDRESSES = {
-  // Base Sepolia testnet addresses
+  // Base Sepolia testnet addresses: 0x8f04790D3a0f69512EDc737120312DF5836420A4
   testnet: {
-    DECK_ACCESS_NFT: '0xA26277f442eD2E41E70E4a06E3849807D972e4C3' as Address,
+    DECK_ACCESS_NFT: '0x8f04790D3a0f69512EDc737120312DF5836420A4' as Address,
   },
 } as const;
 

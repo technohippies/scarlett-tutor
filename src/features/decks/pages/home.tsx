@@ -10,16 +10,20 @@ import { IPFSImage } from '../../../shared/components/ipfs-image';
 function DeckCard({ deck, showStats = false }: { deck: Deck; showStats?: boolean }) {
   return (
     <Link key={deck.id} to={`/decks/${deck.id}`} data-discover="true">
-      <div className="group relative overflow-hidden rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-colors">
+      <div className="group relative overflow-hidden bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg">
         {deck.img_cid && (
-          <IPFSImage 
-            cid={deck.img_cid} 
-            alt={deck.name}
-            aspectRatio="video"
-          />
+          <div className="h-48 bg-white rounded-t-lg">
+            <IPFSImage 
+              cid={deck.img_cid} 
+              alt={deck.name}
+              aspectRatio="video"
+              containerClassName="h-full bg-white rounded-none"
+              className="h-full"
+            />
+          </div>
         )}
         <div className="p-6">
-          <div className="flex flex-row items-center justify-between">
+          <div className="flex flex-row items-center justify-between text-white">
             <h3 className="font-semibold leading-none tracking-tight">{deck.name}</h3>
             {showStats && deck.stats && (
               <div className="flex gap-3 text-sm">
@@ -30,7 +34,7 @@ function DeckCard({ deck, showStats = false }: { deck: Deck; showStats?: boolean
             )}
           </div>
           {!showStats && (
-            <p className="text-sm text-muted-foreground mt-2">{deck.description}</p>
+            <p className="text-sm text-neutral-300 mt-2">{deck.description}</p>
           )}
           {deck.price > 0 && (
             <div className="text-sm text-neutral-400 mt-2">{`.000${deck.price} $ETH`}</div>
@@ -80,7 +84,7 @@ function HomePage() {
     }
 
     // Initial load
-    if (!hasFetchedRef.current && !isLoading && decks.length === 0) {
+    if (!hasFetchedRef.current && decks.length === 0) {
       hasFetchedRef.current = true;
       void handleRefresh();
     }
@@ -108,7 +112,7 @@ function HomePage() {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [refreshDecks, location.key]); // Re-run on navigation
+  }, [refreshDecks, location.key]);
 
   // Check which decks are in IDB
   useEffect(() => {
@@ -132,8 +136,8 @@ function HomePage() {
     }
   }, [decks]);
 
-  // Show loading only on initial load
-  if (isLoading && decks.length === 0 && !hasFetchedRef.current) {
+  // Show loading for initial load and when refreshing with no decks
+  if (isLoading && decks.length === 0) {
     return (
       <PageLayout>
         <div className="flex items-center justify-center min-h-[50vh]">
