@@ -2,7 +2,7 @@ import { type Deck } from '../idb/schema';
 import { addDebugLog } from '../../components/debug-info';
 
 // Table names - these are unique to your deployment
-export const DECKS_TABLE = 'decks_v6_84532_104';
+export const DECKS_TABLE = 'decks_base_v1_8453_20';
 
 // Convert TableLand price (in whole numbers) to Wei
 // e.g., 7 in TableLand = 0.0007 ETH = 700000000000000 Wei
