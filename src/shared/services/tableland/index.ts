@@ -16,7 +16,7 @@ function convertTableLandPriceToWei(price: number): bigint {
 
 export class TablelandClient {
   private static instance: TablelandClient;
-  private readonly gateway = 'https://testnets.tableland.network/api/v1';
+  private readonly gateway = 'https://tableland.network/api/v1';
 
   private constructor() {
     addDebugLog('Initializing read-only TablelandClient...', 'info');
